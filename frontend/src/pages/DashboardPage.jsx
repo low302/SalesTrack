@@ -137,6 +137,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadDashboard();
+    // Auto-refresh every 30 seconds to pick up new sales
+    const interval = setInterval(loadDashboard, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadDashboard = async () => {
@@ -178,13 +181,19 @@ export default function DashboardPage() {
   // Prepare chart data
   const dailyChartData = data.dailySales.map(d => ({
     ...d,
-    date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    date: new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }));
 
-  const monthlyChartData = data.monthlySales.map(d => ({
-    ...d,
-    month: new Date(d.month + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-  }));
+  // Format monthly data - parse year and month directly to avoid timezone issues
+  const monthlyChartData = data.monthlySales.map(d => {
+    const [year, month] = d.month.split('-');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthLabel = `${monthNames[parseInt(month) - 1]} '${year.slice(-2)}`;
+    return {
+      ...d,
+      month: monthLabel
+    };
+  });
 
   return (
     <div className="space-y-6">

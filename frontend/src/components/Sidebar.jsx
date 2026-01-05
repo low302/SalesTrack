@@ -26,8 +26,8 @@ export default function Sidebar({ collapsed, setCollapsed }) {
   ];
 
   return (
-    <aside 
-      className={`bg-neutral text-neutral-content min-h-screen flex flex-col transition-all duration-300 ${
+    <aside
+      className={`bg-neutral text-neutral-content h-full flex flex-col transition-all duration-300 ${
         collapsed ? 'w-18' : 'w-64'
       }`}
     >

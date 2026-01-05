@@ -18,7 +18,7 @@ export default function Layout() {
       </button>
 
       {/* Sidebar - Desktop */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:block sticky top-0 h-screen">
         <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
       </div>
 

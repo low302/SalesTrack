@@ -10,6 +10,7 @@ export default function ReportsPage() {
   const [data, setData] = useState(null);
   const [sales, setSales] = useState([]);
   const [salespeople, setSalespeople] = useState([]);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('thisMonth');
   const [customStartDate, setCustomStartDate] = useState('');
@@ -25,12 +26,13 @@ export default function ReportsPage() {
 
   const loadData = async () => {
     try {
-      const [dashboardData, salesData, salespeopleData] = await Promise.all([
-        api.getDashboard(), api.getSales(), api.getSalespeople()
+      const [dashboardData, salesData, salespeopleData, settingsData] = await Promise.all([
+        api.getDashboard(), api.getSales(), api.getSalespeople(), api.getSettings()
       ]);
       setData(dashboardData);
       setSales(salesData);
       setSalespeople(salespeopleData);
+      setSettings(settingsData);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -298,8 +300,9 @@ export default function ReportsPage() {
   const totalGross = activeSales.reduce((sum, s) => sum + (s.grossProfit || 0), 0);
   const cpoCount = activeSales.filter(s => s.cpo).length;
   const sslpCount = activeSales.filter(s => s.sslp).length;
-  const totalPack = activeSales.reduce((sum, s) => sum + (s.packAmount || 0), 0);
-  const avgPackAmount = activeSales.length > 0 ? totalPack / activeSales.length : 0;
+  const currentPackAmount = settings?.packAmount || 500;
+  const totalPack = activeSales.length * currentPackAmount;
+  const avgPackAmount = currentPackAmount;
   const totalShopBill = activeSales.reduce((sum, s) => sum + (s.shopBill || 0), 0);
   const avgShopBill = activeSales.length > 0 ? totalShopBill / activeSales.length : 0;
 
