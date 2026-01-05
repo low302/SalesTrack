@@ -94,12 +94,6 @@ export default function LoginPage() {
             </div>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="divider text-sm">Demo Credentials</div>
-          <div className="text-center text-sm text-base-content/60">
-            <p><strong>Username:</strong> admin</p>
-            <p><strong>Password:</strong> admin123</p>
-          </div>
         </div>
       </div>
     </div>
