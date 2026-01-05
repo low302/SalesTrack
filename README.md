@@ -33,8 +33,8 @@ docker-compose up --build
 ```
 
 3. Access the application:
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:5000
+   - Frontend: http://localhost:4000
+   - Backend API: http://localhost:9000
 
 ### Default Login Credentials
 - **Username**: admin

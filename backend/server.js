@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 9000;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key';
 const DATA_DIR = process.env.DATA_DIR || './data';
 
