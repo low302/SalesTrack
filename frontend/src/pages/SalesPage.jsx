@@ -526,11 +526,11 @@ export default function SalesPage() {
                         {sale.isSplit && <span className="badge badge-xs badge-warning">Split</span>}
                       </div>
                     </td>
-                    <td className="text-center font-medium">{formatCurrency(sale.frontEnd || 0)}</td>
-                    <td className="text-center text-base-content/60">{formatCurrency(sale.backEnd || 0)}</td>
-                    <td className="text-center text-base-content/60">{formatCurrency(sale.shopBill || 0)}</td>
+                    <td className={`text-center font-medium ${(sale.frontEnd || 0) < 0 ? 'text-error' : ''}`}>{formatCurrency(sale.frontEnd || 0)}</td>
+                    <td className={`text-center ${(sale.backEnd || 0) < 0 ? 'text-error' : 'text-base-content/60'}`}>{formatCurrency(sale.backEnd || 0)}</td>
+                    <td className={`text-center ${(sale.shopBill || 0) < 0 ? 'text-error' : 'text-base-content/60'}`}>{formatCurrency(sale.shopBill || 0)}</td>
                     <td className="text-center">
-                      <span className={sale.grossProfit >= 0 ? 'text-success font-medium' : 'text-error font-medium'}>{formatCurrency(sale.grossProfit || 0)}</span>
+                      <span className={`font-medium ${(sale.grossProfit || 0) >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(sale.grossProfit || 0)}</span>
                     </td>
                     <td>
                       <div className="grid grid-cols-[auto_auto] gap-x-1.5 gap-y-0.5 justify-center items-center w-fit mx-auto">
@@ -579,15 +579,15 @@ export default function SalesPage() {
               <div className="text-xs text-base-content/50">Sales</div>
             </div>
             <div>
-              <div className="text-lg font-semibold">{formatCurrency(mtdStats.frontEnd)}</div>
+              <div className={`text-lg font-semibold ${mtdStats.frontEnd < 0 ? 'text-error' : ''}`}>{formatCurrency(mtdStats.frontEnd)}</div>
               <div className="text-xs text-base-content/50">Front</div>
             </div>
             <div>
-              <div className="text-lg font-semibold">{formatCurrency(mtdStats.backEnd)}</div>
+              <div className={`text-lg font-semibold ${mtdStats.backEnd < 0 ? 'text-error' : ''}`}>{formatCurrency(mtdStats.backEnd)}</div>
               <div className="text-xs text-base-content/50">Back</div>
             </div>
             <div>
-              <div className="text-lg font-semibold">{formatCurrency(mtdStats.gross)}</div>
+              <div className={`text-lg font-semibold ${mtdStats.gross >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(mtdStats.gross)}</div>
               <div className="text-xs text-base-content/50">Gross</div>
             </div>
           </div>
@@ -604,15 +604,15 @@ export default function SalesPage() {
               <div className="text-xs text-base-content/50">Sales</div>
             </div>
             <div>
-              <div className="text-lg font-semibold">{formatCurrency(ytdStats.frontEnd)}</div>
+              <div className={`text-lg font-semibold ${ytdStats.frontEnd < 0 ? 'text-error' : ''}`}>{formatCurrency(ytdStats.frontEnd)}</div>
               <div className="text-xs text-base-content/50">Front</div>
             </div>
             <div>
-              <div className="text-lg font-semibold">{formatCurrency(ytdStats.backEnd)}</div>
+              <div className={`text-lg font-semibold ${ytdStats.backEnd < 0 ? 'text-error' : ''}`}>{formatCurrency(ytdStats.backEnd)}</div>
               <div className="text-xs text-base-content/50">Back</div>
             </div>
             <div>
-              <div className="text-lg font-semibold">{formatCurrency(ytdStats.gross)}</div>
+              <div className={`text-lg font-semibold ${ytdStats.gross >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(ytdStats.gross)}</div>
               <div className="text-xs text-base-content/50">Gross</div>
             </div>
           </div>
@@ -628,11 +628,11 @@ export default function SalesPage() {
               <div className="text-xs text-base-content/50">Sales</div>
             </div>
             <div>
-              <div className="text-lg font-semibold">{formatCurrency(filteredSales.reduce((sum, s) => sum + (s.frontEnd || 0), 0))}</div>
+              {(() => { const val = filteredSales.reduce((sum, s) => sum + (s.frontEnd || 0), 0); return <div className={`text-lg font-semibold ${val < 0 ? 'text-error' : ''}`}>{formatCurrency(val)}</div>; })()}
               <div className="text-xs text-base-content/50">Front End</div>
             </div>
             <div>
-              <div className="text-lg font-semibold">{formatCurrency(filteredSales.reduce((sum, s) => sum + (s.grossProfit || 0), 0))}</div>
+              {(() => { const val = filteredSales.reduce((sum, s) => sum + (s.grossProfit || 0), 0); return <div className={`text-lg font-semibold ${val >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(val)}</div>; })()}
               <div className="text-xs text-base-content/50">Gross</div>
             </div>
           </div>

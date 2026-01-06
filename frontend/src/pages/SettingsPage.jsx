@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../context/AuthContext';
-import { Loader2, Save, Settings, DollarSign, Target, Upload, X, AlertTriangle, Check, Merge, Users } from 'lucide-react';
+import { Loader2, Save, Settings, DollarSign, Target, Upload, X, AlertTriangle, Check, Merge, Users, Monitor } from 'lucide-react';
 
 // Helper to get current date in CST
 const getCSTDate = () => {
@@ -88,7 +88,7 @@ export default function SettingsPage() {
       ...settings.monthlyTargets,
       [selectedMonth]: {
         ...settings.monthlyTargets[selectedMonth],
-        [field]: parseInt(value) || 0
+        [field]: value === '' ? '' : parseInt(value) || 0
       }
     };
     setSettings({ ...settings, monthlyTargets: updatedTargets });
@@ -329,8 +329,13 @@ export default function SettingsPage() {
                     type="number"
                     step="0.01"
                     className="input input-bordered"
-                    value={settings.packAmount || 0}
-                    onChange={(e) => handleChange('packAmount', parseFloat(e.target.value))}
+                    value={settings.packAmount ?? ''}
+                    onChange={(e) => handleChange('packAmount', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    onBlur={(e) => {
+                      if (e.target.value === '' || isNaN(parseFloat(e.target.value))) {
+                        handleChange('packAmount', 0);
+                      }
+                    }}
                   />
                   <label className="label">
                     <span className="label-text-alt">This amount is subtracted from gross profit for each vehicle sold</span>
@@ -371,8 +376,13 @@ export default function SettingsPage() {
                     min="1"
                     max="31"
                     className="input input-bordered"
-                    value={currentTargets.workingDays || 22}
+                    value={currentTargets.workingDays ?? ''}
                     onChange={(e) => handleMonthlyTargetChange('workingDays', e.target.value)}
+                    onBlur={(e) => {
+                      if (e.target.value === '' || isNaN(parseInt(e.target.value))) {
+                        handleMonthlyTargetChange('workingDays', 22);
+                      }
+                    }}
                   />
                   <label className="label">
                     <span className="label-text-alt">Business days for this month</span>
@@ -386,8 +396,13 @@ export default function SettingsPage() {
                     type="number"
                     min="0"
                     className="input input-bordered"
-                    value={currentTargets.usedCars || 0}
+                    value={currentTargets.usedCars ?? ''}
                     onChange={(e) => handleMonthlyTargetChange('usedCars', e.target.value)}
+                    onBlur={(e) => {
+                      if (e.target.value === '' || isNaN(parseInt(e.target.value))) {
+                        handleMonthlyTargetChange('usedCars', 0);
+                      }
+                    }}
                   />
                 </div>
                 <div className="form-control">
@@ -398,9 +413,38 @@ export default function SettingsPage() {
                     type="number"
                     min="0"
                     className="input input-bordered"
-                    value={currentTargets.cpo || 0}
+                    value={currentTargets.cpo ?? ''}
                     onChange={(e) => handleMonthlyTargetChange('cpo', e.target.value)}
+                    onBlur={(e) => {
+                      if (e.target.value === '' || isNaN(parseInt(e.target.value))) {
+                        handleMonthlyTargetChange('cpo', 0);
+                      }
+                    }}
                   />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Display Settings */}
+          <div className="card bg-base-100 shadow-md md:col-span-2">
+            <div className="card-body">
+              <h2 className="card-title text-lg">
+                <Monitor size={20} className="text-info" />
+                Display Settings
+              </h2>
+              <div className="space-y-4 mt-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Quote of the Day</span>
+                    <span className="label-text-alt text-base-content/60">Visible on Team Tracker</span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered h-24"
+                    value={settings.quoteOfTheDay ?? ''}
+                    onChange={(e) => handleChange('quoteOfTheDay', e.target.value)}
+                    placeholder="Enter an inspiring quote..."
+                  ></textarea>
                 </div>
               </div>
             </div>
@@ -423,12 +467,12 @@ export default function SettingsPage() {
             )}
           </button>
         </div>
-      </form>
+      </form >
 
       {/* Data Management Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      < div className="grid grid-cols-1 lg:grid-cols-2 gap-6" >
         {/* Import Sales CSV */}
-        <div className="card bg-base-100 shadow-md">
+        < div className="card bg-base-100 shadow-md" >
           <div className="card-body">
             <h2 className="card-title text-lg">
               <Upload size={20} className="text-primary" />
@@ -473,10 +517,10 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div >
 
         {/* Review Duplicate Salespeople */}
-        <div className="card bg-base-100 shadow-md">
+        < div className="card bg-base-100 shadow-md" >
           <div className="card-body">
             <h2 className="card-title text-lg">
               <Users size={20} className="text-warning" />
@@ -509,11 +553,11 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
-        </div>
-      </div>
+        </div >
+      </div >
 
       {/* Settings Info */}
-      <div className="card bg-base-100 shadow-md">
+      < div className="card bg-base-100 shadow-md" >
         <div className="card-body">
           <h2 className="card-title text-lg">
             <Settings size={20} />
@@ -531,90 +575,92 @@ export default function SettingsPage() {
             </ul>
           </div>
         </div>
-      </div>
+      </div >
 
       {/* Merge Duplicates Modal */}
-      {showMergeModal && (
-        <div className="modal modal-open">
-          <div className="modal-box max-w-2xl">
-            <button onClick={() => { setShowMergeModal(false); setMergeSource(null); setMergeTarget(null); }} className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"><X size={20} /></button>
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-              <Merge size={20} />
-              Review Potential Duplicates
-            </h3>
+      {
+        showMergeModal && (
+          <div className="modal modal-open">
+            <div className="modal-box max-w-2xl">
+              <button onClick={() => { setShowMergeModal(false); setMergeSource(null); setMergeTarget(null); }} className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"><X size={20} /></button>
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <Merge size={20} />
+                Review Potential Duplicates
+              </h3>
 
-            <p className="text-base-content/60 mb-4">
-              The following salespeople have similar names. You can merge duplicates to combine their sales records.
-            </p>
+              <p className="text-base-content/60 mb-4">
+                The following salespeople have similar names. You can merge duplicates to combine their sales records.
+              </p>
 
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {potentialDuplicates.map((dup, idx) => (
-                <div key={idx} className="card bg-base-200">
-                  <div className="card-body py-3">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="font-medium">{dup.person1.name}</div>
-                        <div className="text-xs text-base-content/60">
-                          {getSalesCount(dup.person1.id)} sales | {dup.person1.active ? 'Active' : 'Inactive'}
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {potentialDuplicates.map((dup, idx) => (
+                  <div key={idx} className="card bg-base-200">
+                    <div className="card-body py-3">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="font-medium">{dup.person1.name}</div>
+                          <div className="text-xs text-base-content/60">
+                            {getSalesCount(dup.person1.id)} sales | {dup.person1.active ? 'Active' : 'Inactive'}
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-base-content/40">vs</div>
-                      <div className="flex-1 text-right">
-                        <div className="font-medium">{dup.person2.name}</div>
-                        <div className="text-xs text-base-content/60">
-                          {getSalesCount(dup.person2.id)} sales | {dup.person2.active ? 'Active' : 'Inactive'}
+                        <div className="text-base-content/40">vs</div>
+                        <div className="flex-1 text-right">
+                          <div className="font-medium">{dup.person2.name}</div>
+                          <div className="text-xs text-base-content/60">
+                            {getSalesCount(dup.person2.id)} sales | {dup.person2.active ? 'Active' : 'Inactive'}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => { setMergeSource(dup.person1); setMergeTarget(dup.person2); }}
-                        >
-                          Merge {dup.person1.name.split(' ')[0]} → {dup.person2.name.split(' ')[0]}
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => { setMergeSource(dup.person2); setMergeTarget(dup.person1); }}
-                        >
-                          Merge {dup.person2.name.split(' ')[0]} → {dup.person1.name.split(' ')[0]}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            className="btn btn-sm btn-outline"
+                            onClick={() => { setMergeSource(dup.person1); setMergeTarget(dup.person2); }}
+                          >
+                            Merge {dup.person1.name.split(' ')[0]} → {dup.person2.name.split(' ')[0]}
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline"
+                            onClick={() => { setMergeSource(dup.person2); setMergeTarget(dup.person1); }}
+                          >
+                            Merge {dup.person2.name.split(' ')[0]} → {dup.person1.name.split(' ')[0]}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            {mergeSource && mergeTarget && (
-              <div className="alert alert-warning mt-4">
-                <AlertTriangle size={20} />
-                <div>
-                  <div className="font-medium">Ready to merge</div>
-                  <div className="text-sm">
-                    All {getSalesCount(mergeSource.id)} sales from <strong>{mergeSource.name}</strong> will be transferred to <strong>{mergeTarget.name}</strong>,
-                    and {mergeSource.name} will be deleted.
+              {mergeSource && mergeTarget && (
+                <div className="alert alert-warning mt-4">
+                  <AlertTriangle size={20} />
+                  <div>
+                    <div className="font-medium">Ready to merge</div>
+                    <div className="text-sm">
+                      All {getSalesCount(mergeSource.id)} sales from <strong>{mergeSource.name}</strong> will be transferred to <strong>{mergeTarget.name}</strong>,
+                      and {mergeSource.name} will be deleted.
+                    </div>
                   </div>
+                  <button className="btn btn-sm btn-warning" onClick={handleMerge}>
+                    <Check size={16} /> Confirm Merge
+                  </button>
                 </div>
-                <button className="btn btn-sm btn-warning" onClick={handleMerge}>
-                  <Check size={16} /> Confirm Merge
-                </button>
-              </div>
-            )}
+              )}
 
-            {potentialDuplicates.length === 0 && (
-              <div className="text-center py-8 text-base-content/60">
-                <Check size={48} className="mx-auto mb-2 text-success" />
-                <p>No potential duplicates found!</p>
-              </div>
-            )}
+              {potentialDuplicates.length === 0 && (
+                <div className="text-center py-8 text-base-content/60">
+                  <Check size={48} className="mx-auto mb-2 text-success" />
+                  <p>No potential duplicates found!</p>
+                </div>
+              )}
 
-            <div className="modal-action">
-              <button onClick={() => { setShowMergeModal(false); setMergeSource(null); setMergeTarget(null); }} className="btn">Close</button>
+              <div className="modal-action">
+                <button onClick={() => { setShowMergeModal(false); setMergeSource(null); setMergeTarget(null); }} className="btn">Close</button>
+              </div>
             </div>
+            <div className="modal-backdrop" onClick={() => { setShowMergeModal(false); setMergeSource(null); setMergeTarget(null); }}></div>
           </div>
-          <div className="modal-backdrop" onClick={() => { setShowMergeModal(false); setMergeSource(null); setMergeTarget(null); }}></div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "cea3f7ca-d308-4d95-8d15-f2808ceb2fd5",
+    "name": "John Smith",
+    "active": true,
+    "hireDate": "2023-01-15"
+  },
+  {
+    "id": "f4b1ef17-9ca2-4a99-80d1-7345474cc2a9",
+    "name": "Sarah Johnson",
+    "active": true,
+    "hireDate": "2023-03-20"
+  },
+  {
+    "id": "ae168004-a934-43d2-ae50-6ac52fa7eb9b",
+    "name": "Mike Davis",
+    "active": true,
+    "hireDate": "2022-11-01"
+  }
+]

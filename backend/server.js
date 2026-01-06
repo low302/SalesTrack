@@ -21,6 +21,7 @@ const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const SALES_FILE = path.join(DATA_DIR, 'sales.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const SALESPEOPLE_FILE = path.join(DATA_DIR, 'salespeople.json');
+const TEAMS_FILE = path.join(DATA_DIR, 'teams.json');
 
 // Helper functions for file-based storage
 function readJSON(filePath, defaultValue = []) {
@@ -731,6 +732,174 @@ app.get('/api/analytics/dashboard', authenticateToken, (req, res) => {
     salesBySalesperson,
     dailySales: last30Days,
     monthlySales: last12Months
+  });
+});
+
+// Teams API
+app.get('/api/teams', authenticateToken, (req, res) => {
+  const teams = readJSON(TEAMS_FILE, []);
+  res.json(teams);
+});
+
+app.get('/api/teams/:id', authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const teams = readJSON(TEAMS_FILE, []);
+  const team = teams.find(t => t.id === id);
+  if (!team) {
+    return res.status(404).json({ error: 'Team not found' });
+  }
+  res.json(team);
+});
+
+app.post('/api/teams', authenticateToken, requireAdmin, (req, res) => {
+  const { name, description, color, members, contestName, startDate, endDate, goal } = req.body;
+
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'Team name is required' });
+  }
+
+  const teams = readJSON(TEAMS_FILE, []);
+
+  // Check for duplicate team name
+  if (teams.some(t => t.name.toLowerCase() === name.toLowerCase())) {
+    return res.status(400).json({ error: 'A team with this name already exists' });
+  }
+
+  const newTeam = {
+    id: uuidv4(),
+    name: name.trim(),
+    description: description || '',
+    color: color || '#3b82f6',
+    members: members || [],
+    contestName: contestName || '',
+    startDate: startDate || null,
+    endDate: endDate || null,
+    goal: goal || 0,
+    active: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  teams.push(newTeam);
+  writeJSON(TEAMS_FILE, teams);
+
+  res.status(201).json(newTeam);
+});
+
+app.put('/api/teams/:id', authenticateToken, requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+
+  let teams = readJSON(TEAMS_FILE, []);
+  const teamIndex = teams.findIndex(t => t.id === id);
+
+  if (teamIndex === -1) {
+    return res.status(404).json({ error: 'Team not found' });
+  }
+
+  // Check for duplicate name if name is being updated
+  if (updates.name && updates.name.toLowerCase() !== teams[teamIndex].name.toLowerCase()) {
+    if (teams.some(t => t.id !== id && t.name.toLowerCase() === updates.name.toLowerCase())) {
+      return res.status(400).json({ error: 'A team with this name already exists' });
+    }
+  }
+
+  teams[teamIndex] = {
+    ...teams[teamIndex],
+    ...updates,
+    updatedAt: new Date().toISOString()
+  };
+
+  writeJSON(TEAMS_FILE, teams);
+  res.json(teams[teamIndex]);
+});
+
+app.delete('/api/teams/:id', authenticateToken, requireAdmin, (req, res) => {
+  const { id } = req.params;
+  let teams = readJSON(TEAMS_FILE, []);
+
+  if (!teams.find(t => t.id === id)) {
+    return res.status(404).json({ error: 'Team not found' });
+  }
+
+  teams = teams.filter(t => t.id !== id);
+  writeJSON(TEAMS_FILE, teams);
+
+  res.json({ message: 'Team deleted successfully' });
+});
+
+// Get team stats with sales data
+app.get('/api/teams/:id/stats', authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const { startDate, endDate } = req.query;
+
+  const teams = readJSON(TEAMS_FILE, []);
+  const team = teams.find(t => t.id === id);
+
+  if (!team) {
+    return res.status(404).json({ error: 'Team not found' });
+  }
+
+  const sales = readJSON(SALES_FILE, []);
+  const settings = readJSON(SETTINGS_FILE, {});
+  const packAmount = settings.packAmount || 500;
+
+  // Filter sales by date range if provided
+  let filteredSales = sales;
+  if (startDate || endDate || team.startDate || team.endDate) {
+    const start = startDate || team.startDate;
+    const end = endDate || team.endDate;
+
+    filteredSales = sales.filter(s => {
+      if (!s.saleDate) return false;
+      const saleDate = s.saleDate.split('T')[0];
+      if (start && saleDate < start) return false;
+      if (end && saleDate > end) return false;
+      return true;
+    });
+  }
+
+  // Calculate stats for team members
+  const memberStats = team.members.map(memberId => {
+    let count = 0;
+    let frontEnd = 0;
+    let backEnd = 0;
+    let gross = 0;
+
+    filteredSales.forEach(s => {
+      if (s.salespersonId === memberId) {
+        const mult = s.isSplit ? 0.5 : 1;
+        count += mult;
+        frontEnd += (s.frontEnd || 0) * mult;
+        backEnd += (s.backEnd || 0) * mult;
+        gross += (s.grossProfit || 0) * mult;
+      }
+      if (s.secondSalespersonId === memberId) {
+        count += 0.5;
+        frontEnd += (s.frontEnd || 0) * 0.5;
+        backEnd += (s.backEnd || 0) * 0.5;
+        gross += (s.grossProfit || 0) * 0.5;
+      }
+    });
+
+    return { memberId, count, frontEnd, backEnd, gross };
+  });
+
+  const totalCount = memberStats.reduce((sum, m) => sum + m.count, 0);
+  const totalFrontEnd = memberStats.reduce((sum, m) => sum + m.frontEnd, 0);
+  const totalBackEnd = memberStats.reduce((sum, m) => sum + m.backEnd, 0);
+  const totalGross = memberStats.reduce((sum, m) => sum + m.gross, 0);
+
+  res.json({
+    team,
+    stats: {
+      totalCount,
+      totalFrontEnd,
+      totalBackEnd,
+      totalGross,
+      memberStats,
+      goalProgress: team.goal > 0 ? (totalCount / team.goal) * 100 : 0
+    }
   });
 });
 

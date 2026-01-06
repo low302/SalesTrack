@@ -310,22 +310,20 @@ export default function SalespeoplePage() {
 
       {/* Search and Filter Bar */}
       <div className="card bg-base-100 shadow-sm">
-        <div className="card-body py-4">
-          <div className="flex flex-col lg:flex-row gap-4">
+        <div className="card-body py-3">
+          <div className="flex flex-col lg:flex-row gap-4 items-center">
             {/* Search */}
-            <div className="form-control flex-1">
-              <div className="input-group">
-                <span className="bg-base-200">
-                  <Search size={20} />
-                </span>
+            <div className="form-control flex-1 w-full">
+              <label className="input input-bordered flex items-center gap-2">
+                <Search size={18} className="text-base-content/50" />
                 <input
                   type="text"
                   placeholder="Search by name or nickname..."
-                  className="input input-bordered w-full"
+                  className="grow"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-              </div>
+              </label>
             </div>
 
             {/* Tabs */}
@@ -355,7 +353,7 @@ export default function SalespeoplePage() {
 
             {/* Sort */}
             <div className="dropdown dropdown-end">
-              <label tabIndex={0} className="btn btn-outline gap-2">
+              <label tabIndex={0} className="btn btn-outline btn-sm gap-2">
                 <ArrowUpDown size={16} />
                 Sort: {sortBy === 'sales' ? 'MTD Sales' : sortBy.charAt(0).toUpperCase() + sortBy.slice(1)}
               </label>
@@ -370,96 +368,115 @@ export default function SalespeoplePage() {
         </div>
       </div>
 
-      {/* Salespeople Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredSalespeople.map(person => {
-          const stats = getStats(person.id, person.monthlyGoal || 0);
-          const goalProgress = stats.monthlyGoal > 0 ? (stats.mtdCount / stats.monthlyGoal) * 100 : 0;
-          const paceOnTrack = stats.monthlyGoal > 0 ? stats.projectedTotal >= stats.monthlyGoal : true;
-          return (
-            <div key={person.id} className={`card bg-base-100 shadow-md hover:shadow-lg transition-shadow ${!person.active ? 'opacity-60' : ''}`}>
-              <div className="card-body">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="avatar placeholder">
-                      <div className={`rounded-full w-12 ${person.active ? 'bg-primary text-primary-content' : 'bg-base-300'}`}>
-                        <span className="text-lg">{person.name.charAt(0)}</span>
+      {/* Salespeople Table */}
+      <div className="card bg-base-100 shadow-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="table table-lg">
+            <thead className="bg-base-200">
+              <tr>
+                <th>Salesperson</th>
+                <th className="text-center">MTD Sales</th>
+                <th className="text-center">Goal</th>
+                <th className="text-center">Progress</th>
+                <th className="text-right">Front End</th>
+                <th className="text-right">Gross</th>
+                <th className="text-center">Pace</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSalespeople.map(person => {
+                const stats = getStats(person.id, person.monthlyGoal || 0);
+                const goalProgress = stats.monthlyGoal > 0 ? (stats.mtdCount / stats.monthlyGoal) * 100 : 0;
+                const paceOnTrack = stats.monthlyGoal > 0 ? stats.projectedTotal >= stats.monthlyGoal : true;
+                return (
+                  <tr key={person.id} className={`hover ${!person.active ? 'opacity-40 bg-base-200/50' : ''}`}>
+                    {/* Name & Info */}
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <div className="avatar placeholder">
+                          <div className={`rounded-full w-10 ${person.active ? 'bg-primary text-primary-content' : 'bg-base-300 text-base-content/50'}`}>
+                            <span className="text-lg">{person.name.charAt(0)}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className={`font-bold ${!person.active ? 'text-base-content/60' : ''}`}>
+                            {person.name}
+                            {!person.active && <span className="ml-2 text-xs font-normal text-base-content/40">(Inactive)</span>}
+                          </div>
+                          {person.nickname && <span className={`text-xs ${person.active ? 'text-primary' : 'text-base-content/40'}`}>"{person.nickname}"</span>}
+                          <div className="text-xs text-base-content/50">Since {new Date(person.hireDate).toLocaleDateString()}</div>
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <h3 className="font-bold">{person.name}</h3>
-                      {person.nickname && <p className="text-xs text-primary">aka "{person.nickname}"</p>}
-                      <p className="text-sm text-base-content/60">Since {new Date(person.hireDate).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                  <span className={`badge ${person.active ? 'badge-success' : 'badge-ghost'}`}>
-                    {person.active ? <UserCheck size={12} className="mr-1" /> : <UserX size={12} className="mr-1" />}
-                    {person.active ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-
-                <div className="divider my-2"></div>
-
-                {/* MTD Stats with Goal & Pace */}
-                {stats.monthlyGoal > 0 && (
-                  <div className="mb-3">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-medium">MTD Progress</span>
-                      <span className="text-xs text-base-content/60">
-                        {stats.mtdCount % 1 === 0 ? stats.mtdCount : stats.mtdCount.toFixed(1)} / {stats.monthlyGoal} goal
+                    </td>
+                    {/* MTD Sales */}
+                    <td className="text-center">
+                      <span className="text-lg font-bold text-primary">
+                        {stats.mtdCount % 1 === 0 ? stats.mtdCount : stats.mtdCount.toFixed(1)}
                       </span>
-                    </div>
-                    <progress
-                      className={`progress w-full ${goalProgress >= 100 ? 'progress-success' : 'progress-primary'}`}
-                      value={Math.min(goalProgress, 100)}
-                      max="100"
-                    />
-                    <div className="flex justify-between items-center mt-1">
-                      <span className={`text-xs font-medium ${paceOnTrack ? 'text-success' : 'text-warning'}`}>
-                        Pace: {stats.projectedTotal} projected
+                    </td>
+                    {/* Goal */}
+                    <td className="text-center">
+                      {stats.monthlyGoal > 0 ? (
+                        <span className="font-medium">{stats.monthlyGoal}</span>
+                      ) : (
+                        <span className="text-base-content/40">—</span>
+                      )}
+                    </td>
+                    {/* Progress */}
+                    <td className="text-center">
+                      {stats.monthlyGoal > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <progress
+                            className={`progress w-20 ${goalProgress >= 100 ? 'progress-success' : 'progress-primary'}`}
+                            value={Math.min(goalProgress, 100)}
+                            max="100"
+                          />
+                          <span className="text-xs font-medium">{goalProgress.toFixed(0)}%</span>
+                        </div>
+                      ) : (
+                        <span className="text-base-content/40">—</span>
+                      )}
+                    </td>
+                    {/* Front End */}
+                    <td className={`text-right font-medium ${stats.mtdFrontEnd < 0 ? 'text-error' : ''}`}>
+                      {formatCurrency(stats.mtdFrontEnd)}
+                    </td>
+                    {/* Gross */}
+                    <td className={`text-right font-bold ${stats.mtdProfit >= 0 ? 'text-success' : 'text-error'}`}>
+                      {formatCurrency(stats.mtdProfit)}
+                    </td>
+                    {/* Pace */}
+                    <td className="text-center">
+                      <span className={`text-sm font-medium ${paceOnTrack ? 'text-success' : 'text-warning'}`}>
+                        {stats.projectedTotal}
                       </span>
-                      <span className="text-xs text-base-content/50">
-                        {stats.workingDaysLeft} days left
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Show simple MTD count if no goal set */}
-                {!stats.monthlyGoal && (
-                  <div className="mb-3 text-center">
-                    <div className="text-2xl font-bold text-primary">{stats.mtdCount % 1 === 0 ? stats.mtdCount : stats.mtdCount.toFixed(1)}</div>
-                    <div className="text-xs text-base-content/60">MTD Sales (Pace: {stats.projectedTotal})</div>
-                  </div>
-                )}
-
-                {/* Current Month Stats Only */}
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <div className="text-lg font-bold text-primary">{stats.mtdCount % 1 === 0 ? stats.mtdCount : stats.mtdCount.toFixed(1)}</div>
-                    <div className="text-xs text-base-content/60">MTD Sales</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-secondary">{formatCurrency(stats.mtdFrontEnd)}</div>
-                    <div className="text-xs text-base-content/60">Front End</div>
-                  </div>
-                  <div>
-                    <div className={`text-lg font-bold ${stats.mtdProfit >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(stats.mtdProfit)}</div>
-                    <div className="text-xs text-base-content/60">Gross</div>
-                  </div>
-                </div>
-
-                <div className="card-actions justify-end mt-4">
-                  <button onClick={() => toggleActive(person)} className="btn btn-ghost btn-sm">
-                    {person.active ? 'Deactivate' : 'Activate'}
-                  </button>
-                  <button onClick={() => handleEdit(person)} className="btn btn-ghost btn-sm"><Edit2 size={14} /></button>
-                  <button onClick={() => handleDelete(person)} className="btn btn-ghost btn-sm text-error"><Trash2 size={14} /></button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+                      <div className="text-xs text-base-content/40">{stats.workingDaysLeft}d left</div>
+                    </td>
+                    {/* Actions */}
+                    <td>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => toggleActive(person)}
+                          className="btn btn-ghost btn-xs"
+                          title={person.active ? 'Deactivate' : 'Activate'}
+                        >
+                          {person.active ? <UserX size={14} /> : <UserCheck size={14} />}
+                        </button>
+                        <button onClick={() => handleEdit(person)} className="btn btn-ghost btn-xs" title="Edit">
+                          <Edit2 size={14} />
+                        </button>
+                        <button onClick={() => handleDelete(person)} className="btn btn-ghost btn-xs text-error" title="Delete">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {filteredSalespeople.length === 0 && (
@@ -520,7 +537,19 @@ export default function SalespeoplePage() {
                 </div>
                 <div className="form-control">
                   <label className="label"><span className="label-text">Monthly Goal</span></label>
-                  <input type="number" className="input input-bordered" placeholder="e.g., 10" min="0" value={formData.monthlyGoal} onChange={(e) => setFormData({ ...formData, monthlyGoal: parseInt(e.target.value) || 0 })} />
+                  <input
+                    type="number"
+                    className="input input-bordered"
+                    placeholder="e.g., 10"
+                    min="0"
+                    value={formData.monthlyGoal ?? ''}
+                    onChange={(e) => setFormData({ ...formData, monthlyGoal: e.target.value === '' ? '' : parseInt(e.target.value) || 0 })}
+                    onBlur={(e) => {
+                      if (e.target.value === '' || isNaN(parseInt(e.target.value))) {
+                        setFormData({ ...formData, monthlyGoal: 0 });
+                      }
+                    }}
+                  />
                   <label className="label">
                     <span className="label-text-alt text-base-content/50">Target number of sales per month</span>
                   </label>

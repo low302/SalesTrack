@@ -1,0 +1,8 @@
+{
+  "packAmount": 500,
+  "workingDaysPerMonth": 22,
+  "salesTargetPerDay": 3,
+  "commissionRate": 2.5,
+  "dealershipName": "Auto Sales Dealership",
+  "fiscalYearStart": "January"
+}

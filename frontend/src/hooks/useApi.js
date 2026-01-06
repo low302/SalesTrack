@@ -136,6 +136,46 @@ export function useApi() {
     return res.json();
   };
 
+  // Teams API
+  const getTeams = async () => {
+    const res = await fetchWithAuth('/teams');
+    return res.json();
+  };
+
+  const getTeam = async (id) => {
+    const res = await fetchWithAuth(`/teams/${id}`);
+    return res.json();
+  };
+
+  const createTeam = async (data) => {
+    const res = await fetchWithAuth('/teams', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  };
+
+  const updateTeam = async (id, data) => {
+    const res = await fetchWithAuth(`/teams/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  };
+
+  const deleteTeam = async (id) => {
+    const res = await fetchWithAuth(`/teams/${id}`, {
+      method: 'DELETE'
+    });
+    return res.json();
+  };
+
+  const getTeamStats = async (id, params = {}) => {
+    const queryParams = new URLSearchParams(params);
+    const res = await fetchWithAuth(`/teams/${id}/stats?${queryParams}`);
+    return res.json();
+  };
+
   return {
     getSales,
     createSale,
@@ -151,6 +191,13 @@ export function useApi() {
     deleteUser,
     getSettings,
     updateSettings,
-    getDashboard
+    getDashboard,
+    getTeams,
+    getTeam,
+    createTeam,
+    updateTeam,
+    deleteTeam,
+    getTeamStats
   };
 }
+

@@ -10,6 +10,8 @@ import UsersPage from './pages/UsersPage';
 import SalespeoplePage from './pages/SalespeoplePage';
 import SettingsPage from './pages/SettingsPage';
 import TeamDashboard from './pages/TeamDashboard';
+import TeamManagementPage from './pages/TeamManagementPage';
+import TeamTracker from './pages/TeamTracker';
 import { Loader2 } from 'lucide-react';
 
 function PrivateRoute({ children }) {
@@ -58,6 +60,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/teamtracker"
+        element={
+          <PrivateRoute>
+            <TeamTracker />
+          </PrivateRoute>
+        }
+      />
+      <Route
         path="/"
         element={
           <PrivateRoute>
@@ -81,6 +91,14 @@ function AppRoutes() {
           element={
             <AdminRoute>
               <SalespeoplePage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="teams"
+          element={
+            <AdminRoute>
+              <TeamManagementPage />
             </AdminRoute>
           }
         />

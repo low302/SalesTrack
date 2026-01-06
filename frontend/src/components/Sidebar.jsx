@@ -1,35 +1,71 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Car, 
-  Users, 
-  UserCog, 
-  Settings, 
+import React, { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Car,
+  Users,
+  UserCog,
+  Settings,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
-  BarChart3
+  BarChart3,
+  UsersRound,
+  Trophy
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar({ collapsed, setCollapsed }) {
   const { user, logout, isAdmin } = useAuth();
+  const location = useLocation();
+  const [salesTeamOpen, setSalesTeamOpen] = useState(() => {
+    // Auto-open if we're on a sales team page
+    return location.pathname.startsWith('/salespeople');
+  });
 
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/sales', icon: Car, label: 'Sales' },
     { to: '/reports', icon: BarChart3, label: 'Reports' },
-    { to: '/salespeople', icon: Users, label: 'Salespeople', adminOnly: true },
+  ];
+
+  const salesTeamItems = [
+    { to: '/salespeople', icon: Users, label: 'Salespeople' },
+    { to: '/teams', icon: Trophy, label: 'Team Management' },
+  ];
+
+  const adminItems = [
     { to: '/users', icon: UserCog, label: 'Users', adminOnly: true },
     { to: '/settings', icon: Settings, label: 'Settings', adminOnly: true },
   ];
 
+  // Check if any sales team route is active
+  const isSalesTeamActive = salesTeamItems.some(item => location.pathname === item.to);
+
+  const renderNavItem = (item) => (
+    <li key={item.to}>
+      <NavLink
+        to={item.to}
+        className={({ isActive }) =>
+          `flex items-center gap-3 rounded-lg transition-colors py-3 ${isActive
+            ? 'bg-primary text-white font-medium'
+            : 'hover:bg-neutral-content/10'
+          } ${collapsed ? 'justify-center px-2' : 'px-4'}`
+        }
+        style={({ isActive }) => isActive ? { backgroundColor: 'hsl(var(--p))', color: 'white' } : {}}
+        title={collapsed ? item.label : undefined}
+      >
+        <item.icon size={20} />
+        {!collapsed && <span className="animate-slide-in">{item.label}</span>}
+      </NavLink>
+    </li>
+  );
+
   return (
     <aside
-      className={`bg-neutral text-neutral-content h-full flex flex-col transition-all duration-300 ${
-        collapsed ? 'w-18' : 'w-64'
-      }`}
+      className={`bg-neutral text-neutral-content h-full flex flex-col transition-all duration-300 ${collapsed ? 'w-18' : 'w-64'
+        }`}
     >
       {/* Header */}
       <div className="p-4 flex items-center justify-between border-b border-neutral-content/10">
@@ -63,29 +99,78 @@ export default function Sidebar({ collapsed, setCollapsed }) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-2">
+      <nav className="flex-1 p-2 overflow-y-auto">
         <ul className="menu p-0 gap-1">
-          {navItems.map((item) => {
-            if (item.adminOnly && !isAdmin) return null;
-            
-            return (
-              <li key={item.to}>
+          {/* Main nav items */}
+          {navItems.map(renderNavItem)}
+
+          {/* Sales Team Dropdown - Admin Only */}
+          {isAdmin && (
+            <li>
+              {collapsed ? (
+                // When collapsed, just show as a regular link to first item
                 <NavLink
-                  to={item.to}
+                  to="/salespeople"
                   className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-lg transition-colors ${
-                      isActive 
-                        ? 'bg-primary text-primary-content' 
-                        : 'hover:bg-neutral-content/10'
-                    } ${collapsed ? 'justify-center px-2' : 'px-4'}`
+                    `flex items-center justify-center rounded-lg transition-colors py-3 px-2 ${isActive || isSalesTeamActive
+                      ? 'bg-primary text-white font-medium'
+                      : 'hover:bg-neutral-content/10'
+                    }`
                   }
-                  title={collapsed ? item.label : undefined}
+                  style={({ isActive }) => (isActive || isSalesTeamActive) ? { backgroundColor: 'hsl(var(--p))', color: 'white' } : {}}
+                  title="Sales Team"
                 >
-                  <item.icon size={20} />
-                  {!collapsed && <span className="animate-slide-in">{item.label}</span>}
+                  <UsersRound size={20} />
                 </NavLink>
-              </li>
-            );
+              ) : (
+                // When expanded, show as dropdown
+                <>
+                  <button
+                    onClick={() => setSalesTeamOpen(!salesTeamOpen)}
+                    className={`flex items-center gap-3 rounded-lg transition-colors py-3 px-4 w-full ${isSalesTeamActive
+                      ? 'bg-primary/20 text-primary font-medium'
+                      : 'hover:bg-neutral-content/10'
+                      }`}
+                  >
+                    <UsersRound size={20} />
+                    <span className="flex-1 text-left animate-slide-in">Sales Team</span>
+                    <ChevronDown
+                      size={16}
+                      className={`transition-transform duration-200 ${salesTeamOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  {/* Dropdown items */}
+                  <ul
+                    className={`overflow-hidden transition-all duration-200 ${salesTeamOpen ? 'max-h-60 opacity-100 mt-1' : 'max-h-0 opacity-0'
+                      }`}
+                  >
+                    {salesTeamItems.map((item) => (
+                      <li key={item.to}>
+                        <NavLink
+                          to={item.to}
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 rounded-lg transition-colors py-2 pl-10 pr-4 text-sm ${isActive
+                              ? 'bg-primary text-white font-medium'
+                              : 'hover:bg-neutral-content/10'
+                            }`
+                          }
+                          style={({ isActive }) => isActive ? { backgroundColor: 'hsl(var(--p))', color: 'white' } : {}}
+                        >
+                          <item.icon size={16} />
+                          <span>{item.label}</span>
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </li>
+          )}
+
+          {/* Admin items */}
+          {adminItems.map((item) => {
+            if (item.adminOnly && !isAdmin) return null;
+            return renderNavItem(item);
           })}
         </ul>
       </nav>

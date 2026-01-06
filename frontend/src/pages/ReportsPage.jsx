@@ -655,10 +655,10 @@ export default function ReportsPage() {
                     <tr key={sp.id} className="hover font-semibold">
                       <td>{sp.name}</td>
                       <td className="text-right">{units % 1 === 0 ? units : units.toFixed(1)}</td>
-                      <td className="text-right">{formatCurrency(frontEnd)}</td>
-                      <td className="text-right">{formatCurrency(backEnd)}</td>
+                      <td className={`text-right ${frontEnd >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(frontEnd)}</td>
+                      <td className={`text-right ${backEnd >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(backEnd)}</td>
                       <td className="text-right"><span className={gross >= 0 ? 'text-success' : 'text-error'}>{formatCurrency(gross)}</span></td>
-                      <td className="text-right">{formatCurrency(units > 0 ? gross / units : 0)}</td>
+                      <td className={`text-right ${(units > 0 ? gross / units : 0) >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(units > 0 ? gross / units : 0)}</td>
                     </tr>
                   );
                 })}
@@ -690,9 +690,9 @@ export default function ReportsPage() {
                     <td>{new Date(sale.saleDate).toLocaleDateString()}</td>
                     <td>{sale.dealNumber || '-'}</td>
                     <td>{getSalespersonName(sale)}</td>
-                    <td className="text-right">{formatCurrency(sale.frontEnd)}</td>
-                    <td className="text-right">{formatCurrency(sale.backEnd)}</td>
-                    <td className="text-right text-success">{formatCurrency(sale.grossProfit)}</td>
+                    <td className={`text-right ${(sale.frontEnd || 0) >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(sale.frontEnd)}</td>
+                    <td className={`text-right ${(sale.backEnd || 0) >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(sale.backEnd)}</td>
+                    <td className={`text-right ${(sale.grossProfit || 0) >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(sale.grossProfit)}</td>
                   </tr>
                 ))}
               </tbody>
