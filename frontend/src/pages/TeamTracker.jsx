@@ -170,6 +170,39 @@ export default function TeamTracker() {
         return { totalCount, totalNewCount, totalUsedCount, totalNewGross, totalUsedGross, memberStats };
     };
 
+    // Get today's sales (actual daily count)
+    const getTodaySales = () => {
+        const cstDate = getCSTDate();
+        const todayStr = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
+
+        let todayNewCount = 0;
+        let todayUsedCount = 0;
+
+        sales.forEach(s => {
+            if (s.saleDate === todayStr) {
+                const isNew = (s.carType || 'new') === 'new';
+                const mult = s.isSplit ? 0.5 : 1;
+
+                if (isNew) {
+                    todayNewCount += mult;
+                } else {
+                    todayUsedCount += mult;
+                }
+
+                // Also count if this person is secondary on split
+                if (s.secondSalespersonId) {
+                    if (isNew) {
+                        todayNewCount += 0.5;
+                    } else {
+                        todayUsedCount += 0.5;
+                    }
+                }
+            }
+        });
+
+        return { todayNewCount, todayUsedCount };
+    };
+
     // Get overall competition stats
     const getCompetitionStats = () => {
         let totalNewSales = 0;
@@ -197,6 +230,7 @@ export default function TeamTracker() {
     }, [teams, sales, salespeople]);
 
     const competitionStats = getCompetitionStats();
+    const todaySales = getTodaySales();
     const cstDate = getCSTDate();
     const monthName = cstDate.toLocaleString('en-US', { month: 'long', timeZone: 'America/Chicago' });
 
@@ -250,15 +284,15 @@ export default function TeamTracker() {
             {/* Competition Summary */}
             <div className="grid grid-cols-4 gap-4 mb-6">
                 <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-4 border border-gray-700/50">
-                    <div className="text-gray-400 text-sm font-medium mb-1">New Sold Daily</div>
+                    <div className="text-gray-400 text-sm font-medium mb-1">New Sold Today</div>
                     <div className="text-4xl font-bold text-white">
-                        {dynamicDailyUsedGoal}
+                        {todaySales.todayNewCount % 1 === 0 ? todaySales.todayNewCount : todaySales.todayNewCount.toFixed(1)}
                     </div>
                 </div>
                 <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-4 border border-gray-700/50">
-                    <div className="text-gray-400 text-sm font-medium mb-1">Used Sold Daily</div>
+                    <div className="text-gray-400 text-sm font-medium mb-1">Used Sold Today</div>
                     <div className="text-4xl font-bold text-white">
-                        {competitionStats.totalUsedSales % 1 === 0 ? competitionStats.totalUsedSales : competitionStats.totalUsedSales.toFixed(1)}
+                        {todaySales.todayUsedCount % 1 === 0 ? todaySales.todayUsedCount : todaySales.todayUsedCount.toFixed(1)}
                     </div>
                 </div>
                 <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-4 border border-gray-700/50">
