@@ -6,6 +6,10 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import SalesPage from './pages/SalesPage';
 import ReportsPage from './pages/ReportsPage';
+import NewCarSalesPage from './pages/NewCarSalesPage';
+import NewCarReportsPage from './pages/NewCarReportsPage';
+import UsedCarSalesPage from './pages/UsedCarSalesPage';
+import UsedCarReportsPage from './pages/UsedCarReportsPage';
 import UsersPage from './pages/UsersPage';
 import SalespeoplePage from './pages/SalespeoplePage';
 import SettingsPage from './pages/SettingsPage';
@@ -76,6 +80,10 @@ function AppRoutes() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="new-cars/sales" element={<NewCarSalesPage />} />
+        <Route path="new-cars/reports" element={<NewCarReportsPage />} />
+        <Route path="used-cars/sales" element={<UsedCarSalesPage />} />
+        <Route path="used-cars/reports" element={<UsedCarReportsPage />} />
         <Route path="sales" element={<SalesPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route

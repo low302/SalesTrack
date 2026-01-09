@@ -54,7 +54,7 @@ const getDatePresets = () => {
   };
 };
 
-export default function SalesPage() {
+export default function SalesPage({ carTypeFilter = null, pageTitle = 'Sales' }) {
   const [sales, setSales] = useState([]);
   const [salespeople, setSalespeople] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -69,13 +69,14 @@ export default function SalesPage() {
       endDate: presets.currentMonth.end,
       salespersonId: '',
       cpo: false,
-      sslp: false
+      sslp: false,
+      carType: '' // '', 'new', or 'used'
     };
   });
   const [formData, setFormData] = useState({
     dealNumber: '', stockNumber: '', frontEnd: '', backEnd: '', shopBill: '', salespersonName: '', salesperson2Name: '',
     saleDate: formatDateCST(getCSTDate()),
-    customerName: '', serviceComplete: false, cpo: false, sslp: false, delivered: false, notes: ''
+    customerName: '', serviceComplete: false, cpo: false, sslp: false, delivered: false, notes: '', carType: 'new'
   });
   const [salespersonSearch, setSalespersonSearch] = useState('');
   const [showSalespersonDropdown, setShowSalespersonDropdown] = useState(false);
@@ -292,7 +293,8 @@ export default function SalesPage() {
       salespersonName: sp1?.name || '', salesperson2Name: sp2?.name || '',
       saleDate: sale.saleDate, customerName: sale.customerName || '',
       serviceComplete: sale.serviceComplete || false, cpo: sale.cpo || false,
-      sslp: sale.sslp || false, delivered: sale.delivered || false, notes: sale.notes || ''
+      sslp: sale.sslp || false, delivered: sale.delivered || false, notes: sale.notes || '',
+      carType: sale.carType || 'new'
     });
     setSalespersonSearch(sp1?.name || '');
     setShowModal(true);
@@ -303,7 +305,7 @@ export default function SalesPage() {
     setFormData({
       dealNumber: '', stockNumber: '', frontEnd: '', backEnd: '', shopBill: '', salespersonName: '', salesperson2Name: '',
       saleDate: formatDateCST(getCSTDate()),
-      customerName: '', serviceComplete: false, cpo: false, sslp: false, delivered: false, notes: ''
+      customerName: '', serviceComplete: false, cpo: false, sslp: false, delivered: false, notes: '', carType: 'new'
     });
     setSalespersonSearch('');
   };
@@ -414,12 +416,20 @@ export default function SalesPage() {
     return sp1?.name || 'Unknown';
   };
 
-  // Apply filters including CPO and SSLP
+  // Apply filters
   let filteredSales = sales.filter(sale =>
   (sale.dealNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     sale.stockNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     sale.customerName?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+  // Apply carType filter if provided (for New Cars / Used Cars pages)
+  if (carTypeFilter) {
+    filteredSales = filteredSales.filter(s => (s.carType || 'new') === carTypeFilter);
+  }
+  // Apply carType filter from dropdown (Total Sales page only)
+  if (filters.carType) {
+    filteredSales = filteredSales.filter(s => (s.carType || 'new') === filters.carType);
+  }
   if (filters.cpo) filteredSales = filteredSales.filter(s => s.cpo);
   if (filters.sslp) filteredSales = filteredSales.filter(s => s.sslp);
 
@@ -428,8 +438,10 @@ export default function SalesPage() {
   const currentMonthStr = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}`;
   const currentYearStr = `${cstDate.getFullYear()}`;
 
-  const mtdSales = sales.filter(s => s.saleDate?.startsWith(currentMonthStr));
-  const ytdSales = sales.filter(s => s.saleDate?.startsWith(currentYearStr));
+  // Apply carType filter to stats if on a filtered page
+  const salesForStats = carTypeFilter ? sales.filter(s => (s.carType || 'new') === carTypeFilter) : sales;
+  const mtdSales = salesForStats.filter(s => s.saleDate?.startsWith(currentMonthStr));
+  const ytdSales = salesForStats.filter(s => s.saleDate?.startsWith(currentYearStr));
 
   const mtdStats = {
     count: mtdSales.length,
@@ -454,8 +466,8 @@ export default function SalesPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Sales</h1>
-          <p className="text-base-content/60">Manage vehicle sales records</p>
+          <h1 className="text-2xl font-bold">{pageTitle}</h1>
+          <p className="text-base-content/60">Manage vehicle sales records{carTypeFilter ? ` (${carTypeFilter === 'new' ? 'New' : 'Used'} vehicles only)` : ''}</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowImportModal(true)} className="btn btn-outline btn-primary">
@@ -513,20 +525,33 @@ export default function SalesPage() {
                 <option value="">All Salespeople</option>
                 {salespeople.map(sp => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
               </select>
-              <label className="label cursor-pointer gap-2">
-                <input type="checkbox" className="checkbox checkbox-sm checkbox-primary" checked={filters.cpo} onChange={(e) => setFilters({ ...filters, cpo: e.target.checked })} />
-                <span className="label-text">CPO</span>
-              </label>
-              <label className="label cursor-pointer gap-2">
-                <input type="checkbox" className="checkbox checkbox-sm checkbox-accent" checked={filters.sslp} onChange={(e) => setFilters({ ...filters, sslp: e.target.checked })} />
-                <span className="label-text">SSLP</span>
-              </label>
-              {(filters.startDate || filters.endDate || filters.salespersonId || filters.cpo || filters.sslp) && (
+              {/* New/Used filter only on Total Sales page (no carTypeFilter) */}
+              {!carTypeFilter && (
+                <select className="select select-bordered select-sm" value={filters.carType} onChange={(e) => setFilters({ ...filters, carType: e.target.value })}>
+                  <option value="">All Types</option>
+                  <option value="new">New</option>
+                  <option value="used">Used</option>
+                </select>
+              )}
+              {/* CPO/SSLP filters only on Used Cars page */}
+              {carTypeFilter === 'used' && (
+                <label className="label cursor-pointer gap-2">
+                  <input type="checkbox" className="checkbox checkbox-sm checkbox-primary" checked={filters.cpo} onChange={(e) => setFilters({ ...filters, cpo: e.target.checked })} />
+                  <span className="label-text">CPO</span>
+                </label>
+              )}
+              {carTypeFilter === 'used' && (
+                <label className="label cursor-pointer gap-2">
+                  <input type="checkbox" className="checkbox checkbox-sm checkbox-accent" checked={filters.sslp} onChange={(e) => setFilters({ ...filters, sslp: e.target.checked })} />
+                  <span className="label-text">SSLP</span>
+                </label>
+              )}
+              {(filters.startDate || filters.endDate || filters.salespersonId || filters.cpo || filters.sslp || filters.carType) && (
                 <button
                   className="btn btn-ghost btn-sm"
                   onClick={() => {
                     setDatePreset('all');
-                    setFilters({ startDate: '', endDate: '', salespersonId: '', cpo: false, sslp: false });
+                    setFilters({ startDate: '', endDate: '', salespersonId: '', cpo: false, sslp: false, carType: '' });
                   }}
                 >
                   <X size={16} /> Clear
@@ -570,6 +595,7 @@ export default function SalesPage() {
                   />
                 </th>
                 <th className="text-center">Date</th>
+                <th className="text-center">Type</th>
                 <th className="text-center">Deal #</th>
                 <th className="text-center">Customer</th>
                 <th className="text-center">Vehicle</th>
@@ -578,13 +604,13 @@ export default function SalesPage() {
                 <th className="text-center">Front</th>
                 <th className="text-center">Back</th>
                 <th className="text-center">Gross</th>
-                <th className="text-center">Status</th>
+                {carTypeFilter === 'used' && <th className="text-center">Status</th>}
                 <th className="text-center w-20">Actions</th>
               </tr>
             </thead>
             <tbody className="text-xs">
               {filteredSales.length === 0 ? (
-                <tr><td colSpan="12" className="text-center py-8 text-base-content/60">No sales found for this period.</td></tr>
+                <tr><td colSpan={carTypeFilter === 'used' ? 13 : 12} className="text-center py-8 text-base-content/60">No sales found for this period.</td></tr>
               ) : (
                 filteredSales.map((sale) => (
                   <tr
@@ -601,6 +627,11 @@ export default function SalesPage() {
                       />
                     </td>
                     <td className="text-center whitespace-nowrap">{new Date(sale.saleDate).toLocaleDateString()}</td>
+                    <td className="text-center">
+                      <span className="badge badge-xs badge-ghost">
+                        {(sale.carType || 'new') === 'new' ? 'New' : 'Used'}
+                      </span>
+                    </td>
                     <td className="text-center font-medium">{sale.dealNumber || '-'}</td>
                     <td className="text-center max-w-[120px] truncate" title={sale.customerName}>{sale.customerName || '-'}</td>
                     <td className="text-center whitespace-nowrap max-w-[100px] truncate" title={`${sale.vehicleYear || ''} ${sale.vehicleModel || ''}`}>
@@ -618,14 +649,16 @@ export default function SalesPage() {
                     <td className="text-center">
                       <span className={`font-semibold ${(sale.grossProfit || 0) >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(sale.grossProfit || 0)}</span>
                     </td>
-                    <td className="text-center">
-                      <div className="flex flex-wrap gap-0.5 justify-center">
-                        <span className={`badge badge-xs text-white ${sale.delivered ? 'bg-success' : 'bg-error'}`}>DEL</span>
-                        <span className={`badge badge-xs text-white ${sale.serviceComplete ? 'bg-success' : 'bg-error'}`}>SVC</span>
-                        {sale.cpo && <span className="badge badge-xs bg-info text-white">CPO</span>}
-                        {sale.sslp && <span className="badge badge-xs bg-accent text-white">SSLP</span>}
-                      </div>
-                    </td>
+                    {carTypeFilter === 'used' && (
+                      <td className="text-center">
+                        <div className="flex flex-wrap gap-0.5 justify-center">
+                          <span className={`badge badge-xs text-white ${sale.delivered ? 'bg-success' : 'bg-error'}`}>DEL</span>
+                          <span className={`badge badge-xs text-white ${sale.serviceComplete ? 'bg-success' : 'bg-error'}`}>SVC</span>
+                          {sale.cpo && <span className="badge badge-xs bg-info text-white">CPO</span>}
+                          {sale.sslp && <span className="badge badge-xs bg-accent text-white">SSLP</span>}
+                        </div>
+                      </td>
+                    )}
                     <td onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">
                         <button onClick={() => setSelectedSaleForDetail(sale)} className="btn btn-ghost btn-xs btn-square" title="View Details"><Eye size={14} /></button>
@@ -820,17 +853,34 @@ export default function SalesPage() {
                       <input type="checkbox" className="checkbox checkbox-sm checkbox-info" checked={formData.serviceComplete} onChange={(e) => setFormData({ ...formData, serviceComplete: e.target.checked })} />
                       <span className="label-text">Service Complete</span>
                     </label>
-                    <label className="label cursor-pointer gap-2">
-                      <input type="checkbox" className="checkbox checkbox-sm checkbox-primary" checked={formData.cpo} onChange={(e) => setFormData({ ...formData, cpo: e.target.checked })} />
-                      <span className="label-text">CPO</span>
-                    </label>
-                    <label className="label cursor-pointer gap-2">
-                      <input type="checkbox" className="checkbox checkbox-sm checkbox-accent" checked={formData.sslp} onChange={(e) => setFormData({ ...formData, sslp: e.target.checked })} />
-                      <span className="label-text">SSLP</span>
-                    </label>
+                    {carTypeFilter !== 'new' && (
+                      <label className="label cursor-pointer gap-2">
+                        <input type="checkbox" className="checkbox checkbox-sm checkbox-primary" checked={formData.cpo} onChange={(e) => setFormData({ ...formData, cpo: e.target.checked })} />
+                        <span className="label-text">CPO</span>
+                      </label>
+                    )}
+                    {carTypeFilter !== 'new' && (
+                      <label className="label cursor-pointer gap-2">
+                        <input type="checkbox" className="checkbox checkbox-sm checkbox-accent" checked={formData.sslp} onChange={(e) => setFormData({ ...formData, sslp: e.target.checked })} />
+                        <span className="label-text">SSLP</span>
+                      </label>
+                    )}
                     <label className="label cursor-pointer gap-2">
                       <input type="checkbox" className="checkbox checkbox-sm checkbox-success" checked={formData.delivered} onChange={(e) => setFormData({ ...formData, delivered: e.target.checked })} />
                       <span className="label-text">Delivered</span>
+                    </label>
+                  </div>
+                </div>
+                <div className="form-control">
+                  <label className="label"><span className="label-text">Car Type *</span></label>
+                  <div className="flex gap-4">
+                    <label className="label cursor-pointer gap-2">
+                      <input type="radio" name="carType" className="radio radio-primary" checked={formData.carType === 'new'} onChange={() => setFormData({ ...formData, carType: 'new' })} />
+                      <span className="label-text font-medium">New</span>
+                    </label>
+                    <label className="label cursor-pointer gap-2">
+                      <input type="radio" name="carType" className="radio radio-secondary" checked={formData.carType === 'used'} onChange={() => setFormData({ ...formData, carType: 'used' })} />
+                      <span className="label-text font-medium">Used</span>
                     </label>
                   </div>
                 </div>
@@ -1114,7 +1164,6 @@ export default function SalesPage() {
                 </span>
                 {selectedSaleForDetail.cpo && <span className="badge badge-lg badge-info">CPO</span>}
                 {selectedSaleForDetail.sslp && <span className="badge badge-lg badge-accent">SSLP</span>}
-                {selectedSaleForDetail.certified && <span className="badge badge-lg badge-primary">Certified</span>}
               </div>
 
               {/* Notes */}

@@ -12,22 +12,34 @@ import {
   LogOut,
   BarChart3,
   UsersRound,
-  Trophy
+  Trophy,
+  Sparkles,
+  ClipboardList
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar({ collapsed, setCollapsed }) {
   const { user, logout, isAdmin } = useAuth();
   const location = useLocation();
+
+  const [newCarsOpen, setNewCarsOpen] = useState(() => {
+    return location.pathname.startsWith('/new-cars');
+  });
+  const [usedCarsOpen, setUsedCarsOpen] = useState(() => {
+    return location.pathname.startsWith('/used-cars');
+  });
   const [salesTeamOpen, setSalesTeamOpen] = useState(() => {
-    // Auto-open if we're on a sales team page
-    return location.pathname.startsWith('/salespeople');
+    return location.pathname.startsWith('/salespeople') || location.pathname.startsWith('/teams');
   });
 
-  const navItems = [
-    { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/sales', icon: Car, label: 'Sales' },
-    { to: '/reports', icon: BarChart3, label: 'Reports' },
+  const newCarsItems = [
+    { to: '/new-cars/sales', icon: Car, label: 'Sales' },
+    { to: '/new-cars/reports', icon: BarChart3, label: 'Reports' },
+  ];
+
+  const usedCarsItems = [
+    { to: '/used-cars/sales', icon: Car, label: 'Sales' },
+    { to: '/used-cars/reports', icon: BarChart3, label: 'Reports' },
   ];
 
   const salesTeamItems = [
@@ -40,7 +52,9 @@ export default function Sidebar({ collapsed, setCollapsed }) {
     { to: '/settings', icon: Settings, label: 'Settings', adminOnly: true },
   ];
 
-  // Check if any sales team route is active
+  // Check if routes are active
+  const isNewCarsActive = newCarsItems.some(item => location.pathname === item.to);
+  const isUsedCarsActive = usedCarsItems.some(item => location.pathname === item.to);
   const isSalesTeamActive = salesTeamItems.some(item => location.pathname === item.to);
 
   const renderNavItem = (item) => (
@@ -59,6 +73,63 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         <item.icon size={20} />
         {!collapsed && <span className="animate-slide-in">{item.label}</span>}
       </NavLink>
+    </li>
+  );
+
+  const renderDropdown = (title, Icon, items, isOpen, setIsOpen, isActive, colorClass = 'primary') => (
+    <li>
+      {collapsed ? (
+        <NavLink
+          to={items[0].to}
+          className={`flex items-center justify-center rounded-lg transition-colors py-3 px-2 ${isActive
+            ? 'bg-primary text-white font-medium'
+            : 'hover:bg-neutral-content/10'
+            }`}
+          style={isActive ? { backgroundColor: 'hsl(var(--p))', color: 'white' } : {}}
+          title={title}
+        >
+          <Icon size={20} />
+        </NavLink>
+      ) : (
+        <>
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className={`flex items-center gap-3 rounded-lg transition-colors py-3 px-4 w-full ${isActive
+              ? `bg-${colorClass}/20 text-${colorClass} font-medium`
+              : 'hover:bg-neutral-content/10'
+              }`}
+          >
+            <Icon size={20} />
+            <span className="flex-1 text-left animate-slide-in">{title}</span>
+            <ChevronDown
+              size={16}
+              className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+          <ul
+            className={`overflow-hidden transition-all duration-200 ${isOpen ? 'max-h-60 opacity-100 mt-1' : 'max-h-0 opacity-0'
+              }`}
+          >
+            {items.map((item) => (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-lg transition-colors py-2 pl-10 pr-4 text-sm ${isActive
+                      ? 'bg-primary text-white font-medium'
+                      : 'hover:bg-neutral-content/10'
+                    }`
+                  }
+                  style={({ isActive }) => isActive ? { backgroundColor: 'hsl(var(--p))', color: 'white' } : {}}
+                >
+                  <item.icon size={16} />
+                  <span>{item.label}</span>
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </li>
   );
 
@@ -101,71 +172,51 @@ export default function Sidebar({ collapsed, setCollapsed }) {
       {/* Navigation */}
       <nav className="flex-1 p-2 overflow-y-auto">
         <ul className="menu p-0 gap-1">
-          {/* Main nav items */}
-          {navItems.map(renderNavItem)}
+          {/* Dashboard - Single Link */}
+          <li>
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg transition-colors py-3 ${isActive
+                  ? 'bg-primary text-white font-medium'
+                  : 'hover:bg-neutral-content/10'
+                } ${collapsed ? 'justify-center px-2' : 'px-4'}`
+              }
+              style={({ isActive }) => isActive ? { backgroundColor: 'hsl(var(--p))', color: 'white' } : {}}
+              title={collapsed ? 'Dashboard' : undefined}
+            >
+              <LayoutDashboard size={20} />
+              {!collapsed && <span className="animate-slide-in">Dashboard</span>}
+            </NavLink>
+          </li>
+
+          {/* Total Sales - Single Link */}
+          <li>
+            <NavLink
+              to="/sales"
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg transition-colors py-3 ${isActive
+                  ? 'bg-primary text-white font-medium'
+                  : 'hover:bg-neutral-content/10'
+                } ${collapsed ? 'justify-center px-2' : 'px-4'}`
+              }
+              style={({ isActive }) => isActive ? { backgroundColor: 'hsl(var(--p))', color: 'white' } : {}}
+              title={collapsed ? 'Total Sales' : undefined}
+            >
+              <ClipboardList size={20} />
+              {!collapsed && <span className="animate-slide-in">Total Sales</span>}
+            </NavLink>
+          </li>
+
+          {/* New Cars Dropdown */}
+          {renderDropdown('New Cars', Sparkles, newCarsItems, newCarsOpen, setNewCarsOpen, isNewCarsActive, 'primary')}
+
+          {/* Used Cars Dropdown */}
+          {renderDropdown('Used Cars', Car, usedCarsItems, usedCarsOpen, setUsedCarsOpen, isUsedCarsActive, 'secondary')}
 
           {/* Sales Team Dropdown - Admin Only */}
-          {isAdmin && (
-            <li>
-              {collapsed ? (
-                // When collapsed, just show as a regular link to first item
-                <NavLink
-                  to="/salespeople"
-                  className={({ isActive }) =>
-                    `flex items-center justify-center rounded-lg transition-colors py-3 px-2 ${isActive || isSalesTeamActive
-                      ? 'bg-primary text-white font-medium'
-                      : 'hover:bg-neutral-content/10'
-                    }`
-                  }
-                  style={({ isActive }) => (isActive || isSalesTeamActive) ? { backgroundColor: 'hsl(var(--p))', color: 'white' } : {}}
-                  title="Sales Team"
-                >
-                  <UsersRound size={20} />
-                </NavLink>
-              ) : (
-                // When expanded, show as dropdown
-                <>
-                  <button
-                    onClick={() => setSalesTeamOpen(!salesTeamOpen)}
-                    className={`flex items-center gap-3 rounded-lg transition-colors py-3 px-4 w-full ${isSalesTeamActive
-                      ? 'bg-primary/20 text-primary font-medium'
-                      : 'hover:bg-neutral-content/10'
-                      }`}
-                  >
-                    <UsersRound size={20} />
-                    <span className="flex-1 text-left animate-slide-in">Sales Team</span>
-                    <ChevronDown
-                      size={16}
-                      className={`transition-transform duration-200 ${salesTeamOpen ? 'rotate-180' : ''}`}
-                    />
-                  </button>
-                  {/* Dropdown items */}
-                  <ul
-                    className={`overflow-hidden transition-all duration-200 ${salesTeamOpen ? 'max-h-60 opacity-100 mt-1' : 'max-h-0 opacity-0'
-                      }`}
-                  >
-                    {salesTeamItems.map((item) => (
-                      <li key={item.to}>
-                        <NavLink
-                          to={item.to}
-                          className={({ isActive }) =>
-                            `flex items-center gap-3 rounded-lg transition-colors py-2 pl-10 pr-4 text-sm ${isActive
-                              ? 'bg-primary text-white font-medium'
-                              : 'hover:bg-neutral-content/10'
-                            }`
-                          }
-                          style={({ isActive }) => isActive ? { backgroundColor: 'hsl(var(--p))', color: 'white' } : {}}
-                        >
-                          <item.icon size={16} />
-                          <span>{item.label}</span>
-                        </NavLink>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </li>
-          )}
+          {isAdmin && renderDropdown('Sales Team', UsersRound, salesTeamItems, salesTeamOpen, setSalesTeamOpen, isSalesTeamActive, 'accent')}
 
           {/* Admin items */}
           {adminItems.map((item) => {

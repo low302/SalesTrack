@@ -6,7 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
-export default function ReportsPage() {
+export default function ReportsPage({ carTypeFilter = null, pageTitle = 'Reports' }) {
   const [data, setData] = useState(null);
   const [sales, setSales] = useState([]);
   const [salespeople, setSalespeople] = useState([]);
@@ -158,8 +158,14 @@ export default function ReportsPage() {
   // Get current date range
   const currentRange = useMemo(() => getDateRange(dateRange, customStartDate, customEndDate), [dateRange, customStartDate, customEndDate]);
 
-  // Filtered sales for current range
-  const filteredSales = useMemo(() => filterSalesByRange(sales, currentRange.start, currentRange.end), [sales, currentRange]);
+  // Apply carType filter first if provided
+  const carTypeFilteredSales = useMemo(() => {
+    if (!carTypeFilter) return sales;
+    return sales.filter(s => (s.carType || 'new') === carTypeFilter);
+  }, [sales, carTypeFilter]);
+
+  // Filtered sales for current range (use carType filtered sales)
+  const filteredSales = useMemo(() => filterSalesByRange(carTypeFilteredSales, currentRange.start, currentRange.end), [carTypeFilteredSales, currentRange]);
 
   // Compare data
   const compareData = useMemo(() => {
@@ -170,14 +176,14 @@ export default function ReportsPage() {
     return {
       primary: {
         ...ranges.primary,
-        sales: filterSalesByRange(sales, ranges.primary.start, ranges.primary.end)
+        sales: filterSalesByRange(carTypeFilteredSales, ranges.primary.start, ranges.primary.end)
       },
       compare: {
         ...ranges.compare,
-        sales: filterSalesByRange(sales, ranges.compare.start, ranges.compare.end)
+        sales: filterSalesByRange(carTypeFilteredSales, ranges.compare.start, ranges.compare.end)
       }
     };
-  }, [compareMode, sales]);
+  }, [compareMode, carTypeFilteredSales]);
 
   const getSalespersonName = (sale) => {
     const sp1 = salespeople.find(sp => sp.id === sale.salespersonId);
@@ -325,8 +331,8 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Reports</h1>
-          <p className="text-base-content/60">Detailed sales analytics and insights</p>
+          <h1 className="text-2xl font-bold">{pageTitle}</h1>
+          <p className="text-base-content/60">Detailed sales analytics and insights{carTypeFilter ? ` (${carTypeFilter === 'new' ? 'New' : 'Used'} vehicles only)` : ''}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {/* Date Range Selector */}

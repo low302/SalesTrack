@@ -348,7 +348,8 @@ app.post('/api/sales', authenticateToken, (req, res) => {
     sslp,
     delivered,
     notes,
-    shopBill
+    shopBill,
+    carType
   } = req.body;
 
   // Handle salesperson(s) - supports split deals with "/" separator
@@ -428,6 +429,7 @@ app.post('/api/sales', authenticateToken, (req, res) => {
     cpo: cpo || false,
     sslp: sslp || false,
     delivered: delivered || false,
+    carType: carType || 'new',
     notes,
     createdBy: req.user.id,
     createdAt: new Date().toISOString()
@@ -666,10 +668,16 @@ function getCSTDate() {
   return { year, month, day, dateStr };
 }
 
-app.get('/api/analytics/dashboard', authenticateToken, (req, res) => {
-  const sales = readJSON(SALES_FILE, []);
+// Helper function to generate dashboard data (optionally filtered by carType)
+function generateDashboardData(carTypeFilter = null) {
+  let sales = readJSON(SALES_FILE, []);
   const salespeople = readJSON(SALESPEOPLE_FILE, []);
   const settings = readJSON(SETTINGS_FILE, {});
+
+  // Apply carType filter if specified
+  if (carTypeFilter) {
+    sales = sales.filter(s => (s.carType || 'new') === carTypeFilter);
+  }
 
   // Use CST timezone for all date calculations
   const cst = getCSTDate();
@@ -684,13 +692,13 @@ app.get('/api/analytics/dashboard', authenticateToken, (req, res) => {
   const todayProfit = todaySales.reduce((sum, s) => sum + s.grossProfit, 0);
 
   // This month's sales
-  const monthSales = sales.filter(s => s.saleDate.startsWith(thisMonth));
+  const monthSales = sales.filter(s => s.saleDate && s.saleDate.startsWith(thisMonth));
   const monthCount = monthSales.length;
   const monthRevenue = monthSales.reduce((sum, s) => sum + (s.frontEnd || 0), 0);
   const monthProfit = monthSales.reduce((sum, s) => sum + s.grossProfit, 0);
 
   // This year's sales
-  const yearSales = sales.filter(s => s.saleDate.startsWith(thisYear));
+  const yearSales = sales.filter(s => s.saleDate && s.saleDate.startsWith(thisYear));
   const yearCount = yearSales.length;
   const yearRevenue = yearSales.reduce((sum, s) => sum + (s.frontEnd || 0), 0);
   const yearProfit = yearSales.reduce((sum, s) => sum + s.grossProfit, 0);
@@ -780,7 +788,23 @@ app.get('/api/analytics/dashboard', authenticateToken, (req, res) => {
     });
   }
 
-  res.json({
+  // Get sold list for the current month (for new/used dashboards)
+  const soldList = monthSales.map(s => ({
+    id: s.id,
+    saleDate: s.saleDate,
+    dealNumber: s.dealNumber,
+    stockNumber: s.stockNumber,
+    customerName: s.customerName,
+    frontEnd: s.frontEnd,
+    backEnd: s.backEnd,
+    grossProfit: s.grossProfit,
+    salespersonId: s.salespersonId,
+    secondSalespersonId: s.secondSalespersonId,
+    isSplit: s.isSplit,
+    carType: s.carType || 'new'
+  })).sort((a, b) => new Date(b.saleDate) - new Date(a.saleDate));
+
+  return {
     today: { count: todayCount, revenue: todayRevenue, profit: todayProfit },
     month: { count: monthCount, revenue: monthRevenue, profit: monthProfit },
     year: { count: yearCount, revenue: yearRevenue, profit: yearProfit },
@@ -790,8 +814,24 @@ app.get('/api/analytics/dashboard', authenticateToken, (req, res) => {
     },
     salesBySalesperson,
     dailySales: last30Days,
-    monthlySales: last12Months
-  });
+    monthlySales: last12Months,
+    soldList
+  };
+}
+
+// Main dashboard (all sales)
+app.get('/api/analytics/dashboard', authenticateToken, (req, res) => {
+  res.json(generateDashboardData(null));
+});
+
+// New Car Dashboard (only new car sales)
+app.get('/api/analytics/dashboard/new', authenticateToken, (req, res) => {
+  res.json(generateDashboardData('new'));
+});
+
+// Used Car Dashboard (only used car sales)
+app.get('/api/analytics/dashboard/used', authenticateToken, (req, res) => {
+  res.json(generateDashboardData('used'));
 });
 
 // Teams API

@@ -157,6 +157,16 @@ export function useApi() {
     return res.json();
   };
 
+  const getNewDashboard = async () => {
+    const res = await fetchWithAuth('/analytics/dashboard/new');
+    return res.json();
+  };
+
+  const getUsedDashboard = async () => {
+    const res = await fetchWithAuth('/analytics/dashboard/used');
+    return res.json();
+  };
+
   // Teams API
   const getTeams = async () => {
     const res = await fetchWithAuth('/teams');
@@ -232,6 +242,8 @@ export function useApi() {
     getSettings,
     updateSettings,
     getDashboard,
+    getNewDashboard,
+    getUsedDashboard,
     getTeams,
     getTeam,
     createTeam,

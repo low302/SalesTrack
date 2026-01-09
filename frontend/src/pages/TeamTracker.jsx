@@ -92,9 +92,10 @@ export default function TeamTracker() {
 
     // Calculate team stats
     const getTeamStats = (team) => {
-        let totalCount = 0;
-        let totalFrontEnd = 0;
-        let totalGross = 0;
+        let totalNewCount = 0;
+        let totalUsedCount = 0;
+        let totalNewGross = 0;
+        let totalUsedGross = 0;
 
         const teamSales = sales.filter(s => {
             if (team.startDate && s.saleDate < team.startDate) return false;
@@ -105,61 +106,86 @@ export default function TeamTracker() {
         const memberStats = [];
 
         team.members.forEach(memberId => {
-            let memberCount = 0;
+            let memberNewCount = 0;
+            let memberUsedCount = 0;
+            let memberNewGross = 0;
+            let memberUsedGross = 0;
             let memberFrontEnd = 0;
             let memberBackEnd = 0;
             let memberGross = 0;
 
             teamSales.forEach(s => {
+                const isNew = (s.carType || 'new') === 'new';
+                const saleGross = s.grossProfit || 0;
+
                 if (s.salespersonId === memberId) {
                     const mult = s.isSplit ? 0.5 : 1;
-                    memberCount += mult;
+                    if (isNew) {
+                        memberNewCount += mult;
+                        memberNewGross += saleGross * mult;
+                    } else {
+                        memberUsedCount += mult;
+                        memberUsedGross += saleGross * mult;
+                    }
                     memberFrontEnd += (s.frontEnd || 0) * mult;
                     memberBackEnd += (s.backEnd || 0) * mult;
-                    memberGross += (s.grossProfit || 0) * mult;
+                    memberGross += saleGross * mult;
                 }
                 if (s.secondSalespersonId === memberId) {
-                    memberCount += 0.5;
+                    if (isNew) {
+                        memberNewCount += 0.5;
+                        memberNewGross += saleGross * 0.5;
+                    } else {
+                        memberUsedCount += 0.5;
+                        memberUsedGross += saleGross * 0.5;
+                    }
                     memberFrontEnd += (s.frontEnd || 0) * 0.5;
                     memberBackEnd += (s.backEnd || 0) * 0.5;
-                    memberGross += (s.grossProfit || 0) * 0.5;
+                    memberGross += saleGross * 0.5;
                 }
             });
 
-            totalCount += memberCount;
-            totalFrontEnd += memberFrontEnd;
-            totalGross += memberGross;
+            totalNewCount += memberNewCount;
+            totalUsedCount += memberUsedCount;
+            totalNewGross += memberNewGross;
+            totalUsedGross += memberUsedGross;
 
             memberStats.push({
                 id: memberId,
                 name: getSalespersonName(memberId),
-                count: memberCount,
+                newCount: memberNewCount,
+                usedCount: memberUsedCount,
+                totalCount: memberNewCount + memberUsedCount,
                 frontEnd: memberFrontEnd,
                 backEnd: memberBackEnd,
                 gross: memberGross
             });
         });
 
-        // Sort members by count descending
-        memberStats.sort((a, b) => b.count - a.count);
+        // Sort members by total count descending
+        memberStats.sort((a, b) => b.totalCount - a.totalCount);
 
-        return { totalCount, totalFrontEnd, totalGross, memberStats };
+        const totalCount = totalNewCount + totalUsedCount;
+
+        return { totalCount, totalNewCount, totalUsedCount, totalNewGross, totalUsedGross, memberStats };
     };
 
     // Get overall competition stats
     const getCompetitionStats = () => {
-        let totalSales = 0;
-        let totalFrontEnd = 0;
-        let totalGross = 0;
+        let totalNewSales = 0;
+        let totalUsedSales = 0;
+        let totalNewGross = 0;
+        let totalUsedGross = 0;
 
         teams.forEach(team => {
             const stats = getTeamStats(team);
-            totalSales += stats.totalCount;
-            totalFrontEnd += stats.totalFrontEnd;
-            totalGross += stats.totalGross;
+            totalNewSales += stats.totalNewCount;
+            totalUsedSales += stats.totalUsedCount;
+            totalNewGross += stats.totalNewGross;
+            totalUsedGross += stats.totalUsedGross;
         });
 
-        return { totalSales, totalFrontEnd, totalGross };
+        return { totalNewSales, totalUsedSales, totalSales: totalNewSales + totalUsedSales, totalNewGross, totalUsedGross };
     };
 
     // Sort teams by performance
@@ -224,27 +250,27 @@ export default function TeamTracker() {
             {/* Competition Summary */}
             <div className="grid grid-cols-4 gap-4 mb-6">
                 <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-4 border border-gray-700/50">
-                    <div className="text-gray-400 text-sm font-medium mb-1">Daily Used Goal</div>
+                    <div className="text-gray-400 text-sm font-medium mb-1">New Sold Daily</div>
                     <div className="text-4xl font-bold text-white">
                         {dynamicDailyUsedGoal}
                     </div>
                 </div>
                 <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-4 border border-gray-700/50">
-                    <div className="text-gray-400 text-sm font-medium mb-1">Total Sales</div>
+                    <div className="text-gray-400 text-sm font-medium mb-1">Used Sold Daily</div>
                     <div className="text-4xl font-bold text-white">
-                        {competitionStats.totalSales % 1 === 0 ? competitionStats.totalSales : competitionStats.totalSales.toFixed(1)}
+                        {competitionStats.totalUsedSales % 1 === 0 ? competitionStats.totalUsedSales : competitionStats.totalUsedSales.toFixed(1)}
                     </div>
                 </div>
                 <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-4 border border-gray-700/50">
-                    <div className="text-gray-400 text-sm font-medium mb-1">Total Front End</div>
-                    <div className={`text-4xl font-bold ${competitionStats.totalFrontEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {formatCurrency(competitionStats.totalFrontEnd)}
+                    <div className="text-gray-400 text-sm font-medium mb-1">Total New Car Gross</div>
+                    <div className={`text-4xl font-bold ${competitionStats.totalNewGross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {formatCurrency(competitionStats.totalNewGross)}
                     </div>
                 </div>
                 <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-4 border border-gray-700/50">
-                    <div className="text-gray-400 text-sm font-medium mb-1">Total Gross</div>
-                    <div className={`text-4xl font-bold ${competitionStats.totalGross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {formatCurrency(competitionStats.totalGross)}
+                    <div className="text-gray-400 text-sm font-medium mb-1">Total Used Car Gross</div>
+                    <div className={`text-4xl font-bold ${competitionStats.totalUsedGross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {formatCurrency(competitionStats.totalUsedGross)}
                     </div>
                 </div>
             </div>
@@ -252,7 +278,7 @@ export default function TeamTracker() {
             {/* Teams Grid - Side by Side */}
             <div className={`grid gap-4 ${sortedTeams.length === 2 ? 'grid-cols-2' : sortedTeams.length >= 3 ? 'grid-cols-3' : 'grid-cols-1'}`}>
                 {sortedTeams.map((team, index) => {
-                    const { totalCount, totalFrontEnd, totalGross, memberStats } = team.stats;
+                    const { totalCount, totalNewCount, totalUsedCount, totalNewGross, totalUsedGross, memberStats } = team.stats;
                     const goalProgress = team.goal > 0 ? (totalCount / team.goal) * 100 : 0;
                     const isTopThree = index < 3;
 
@@ -291,28 +317,42 @@ export default function TeamTracker() {
                                         </div>
                                     </div>
 
-                                    {/* Big Sales Number */}
-                                    <div className="text-right flex-shrink-0">
-                                        <div className="text-4xl font-bold text-white">
-                                            {totalCount % 1 === 0 ? totalCount : totalCount.toFixed(1)}
+                                    {/* Sales Counters - New / Used / Total */}
+                                    <div className="flex items-center gap-2 flex-shrink-0 bg-gray-900/50 rounded-xl px-4 py-2">
+                                        <div className="text-center px-3 border-r border-gray-700">
+                                            <div className="text-2xl font-bold text-blue-400 tabular-nums">
+                                                {totalNewCount % 1 === 0 ? totalNewCount : totalNewCount.toFixed(1)}
+                                            </div>
+                                            <div className="text-gray-400 text-xs font-medium">New</div>
                                         </div>
-                                        <div className="text-gray-400 text-xs">Sales</div>
+                                        <div className="text-center px-3 border-r border-gray-700">
+                                            <div className="text-2xl font-bold text-orange-400 tabular-nums">
+                                                {totalUsedCount % 1 === 0 ? totalUsedCount : totalUsedCount.toFixed(1)}
+                                            </div>
+                                            <div className="text-gray-400 text-xs font-medium">Used</div>
+                                        </div>
+                                        <div className="text-center px-3">
+                                            <div className="text-3xl font-bold text-white tabular-nums">
+                                                {totalCount % 1 === 0 ? totalCount : totalCount.toFixed(1)}
+                                            </div>
+                                            <div className="text-gray-400 text-xs font-medium">Total</div>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Team Stats Row */}
                                 <div className="flex items-center gap-4 mt-3">
                                     <div className="flex-1 text-center">
-                                        <div className={`text-lg font-bold ${totalFrontEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                            {formatCurrency(totalFrontEnd)}
+                                        <div className={`text-lg font-bold ${totalNewGross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                            {formatCurrency(totalNewGross)}
                                         </div>
-                                        <div className="text-gray-500 text-xs">Front End</div>
+                                        <div className="text-gray-500 text-xs">New Car Gross</div>
                                     </div>
                                     <div className="flex-1 text-center">
-                                        <div className={`text-lg font-bold ${totalGross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                            {formatCurrency(totalGross)}
+                                        <div className={`text-lg font-bold ${totalUsedGross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                            {formatCurrency(totalUsedGross)}
                                         </div>
-                                        <div className="text-gray-500 text-xs">Gross</div>
+                                        <div className="text-gray-500 text-xs">Used Car Gross</div>
                                     </div>
                                     {team.goal > 0 && (
                                         <div className="flex-1">
@@ -362,30 +402,46 @@ export default function TeamTracker() {
                                             </div>
 
                                             {/* Stats */}
-                                            <div className="flex items-center gap-4 flex-shrink-0">
-                                                <div className="text-center w-12">
-                                                    <div className="text-xl font-bold text-white">
-                                                        {member.count % 1 === 0 ? member.count : member.count.toFixed(1)}
+                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                                {/* Unit Counters */}
+                                                <div className="flex items-center gap-1 bg-gray-800/50 rounded-lg px-2 py-1">
+                                                    <div className="text-center w-8">
+                                                        <div className="text-base font-bold text-blue-400 tabular-nums">
+                                                            {member.newCount % 1 === 0 ? member.newCount : member.newCount.toFixed(1)}
+                                                        </div>
+                                                        <div className="text-[10px] text-gray-500">New</div>
                                                     </div>
-                                                    <div className="text-xs text-gray-500">Sales</div>
+                                                    <div className="text-center w-8">
+                                                        <div className="text-base font-bold text-orange-400 tabular-nums">
+                                                            {member.usedCount % 1 === 0 ? member.usedCount : member.usedCount.toFixed(1)}
+                                                        </div>
+                                                        <div className="text-[10px] text-gray-500">Used</div>
+                                                    </div>
+                                                    <div className="text-center w-8 border-l border-gray-600 pl-1">
+                                                        <div className="text-lg font-bold text-white tabular-nums">
+                                                            {member.totalCount % 1 === 0 ? member.totalCount : member.totalCount.toFixed(1)}
+                                                        </div>
+                                                        <div className="text-[10px] text-gray-500">Total</div>
+                                                    </div>
                                                 </div>
-                                                <div className="text-center w-20">
-                                                    <div className={`text-sm font-semibold ${member.frontEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                {/* Gross Stats */}
+                                                <div className="text-center w-16">
+                                                    <div className={`text-xs font-semibold ${member.frontEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {formatCurrency(member.frontEnd)}
                                                     </div>
-                                                    <div className="text-xs text-gray-500">Front</div>
+                                                    <div className="text-[10px] text-gray-500">Front</div>
                                                 </div>
-                                                <div className="text-center w-20">
-                                                    <div className={`text-sm font-semibold ${member.backEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                <div className="text-center w-16">
+                                                    <div className={`text-xs font-semibold ${member.backEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {formatCurrency(member.backEnd)}
                                                     </div>
-                                                    <div className="text-xs text-gray-500">Back</div>
+                                                    <div className="text-[10px] text-gray-500">Back</div>
                                                 </div>
-                                                <div className="text-center w-20">
-                                                    <div className={`text-sm font-semibold ${member.gross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                <div className="text-center w-16">
+                                                    <div className={`text-xs font-semibold ${member.gross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {formatCurrency(member.gross)}
                                                     </div>
-                                                    <div className="text-xs text-gray-500">Total</div>
+                                                    <div className="text-[10px] text-gray-500">Gross</div>
                                                 </div>
                                             </div>
                                         </div>

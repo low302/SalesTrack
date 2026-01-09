@@ -183,28 +183,56 @@ export default function SalespeoplePage() {
     return count;
   };
 
-  // Get stats for current month only
+  // Get stats for current month only with New/Used breakdown
   const getStats = (id, monthlyGoal = 0) => {
-    let mtdCount = 0;
-    let mtdFrontEnd = 0;
-    let mtdProfit = 0;
+    let mtdNewCount = 0;
+    let mtdUsedCount = 0;
+    let mtdNewFrontEnd = 0;
+    let mtdUsedFrontEnd = 0;
+    let mtdNewBackEnd = 0;
+    let mtdUsedBackEnd = 0;
+    let mtdNewProfit = 0;
+    let mtdUsedProfit = 0;
 
     sales.forEach(s => {
       const isMTD = s.saleDate?.startsWith(currentMonthStr);
       if (!isMTD) return;
 
+      const isNew = s.carType === 'new';
+
       if (s.salespersonId === id) {
         const mult = s.isSplit ? 0.5 : 1;
-        mtdCount += mult;
-        mtdFrontEnd += (s.frontEnd || 0) * mult;
-        mtdProfit += (s.grossProfit || 0) * mult;
+        if (isNew) {
+          mtdNewCount += mult;
+          mtdNewFrontEnd += (s.frontEnd || 0) * mult;
+          mtdNewBackEnd += (s.backEnd || 0) * mult;
+          mtdNewProfit += (s.grossProfit || 0) * mult;
+        } else {
+          mtdUsedCount += mult;
+          mtdUsedFrontEnd += (s.frontEnd || 0) * mult;
+          mtdUsedBackEnd += (s.backEnd || 0) * mult;
+          mtdUsedProfit += (s.grossProfit || 0) * mult;
+        }
       }
       if (s.secondSalespersonId === id) {
-        mtdCount += 0.5;
-        mtdFrontEnd += (s.frontEnd || 0) * 0.5;
-        mtdProfit += (s.grossProfit || 0) * 0.5;
+        if (isNew) {
+          mtdNewCount += 0.5;
+          mtdNewFrontEnd += (s.frontEnd || 0) * 0.5;
+          mtdNewBackEnd += (s.backEnd || 0) * 0.5;
+          mtdNewProfit += (s.grossProfit || 0) * 0.5;
+        } else {
+          mtdUsedCount += 0.5;
+          mtdUsedFrontEnd += (s.frontEnd || 0) * 0.5;
+          mtdUsedBackEnd += (s.backEnd || 0) * 0.5;
+          mtdUsedProfit += (s.grossProfit || 0) * 0.5;
+        }
       }
     });
+
+    const mtdCount = mtdNewCount + mtdUsedCount;
+    const mtdFrontEnd = mtdNewFrontEnd + mtdUsedFrontEnd;
+    const mtdBackEnd = mtdNewBackEnd + mtdUsedBackEnd;
+    const mtdProfit = mtdNewProfit + mtdUsedProfit;
 
     const dayOfMonth = cstDate.getDate();
     const year = cstDate.getFullYear();
@@ -220,7 +248,13 @@ export default function SalespeoplePage() {
     const dailyRate = dayOfMonth > 0 ? mtdCount / dayOfMonth : 0;
     const projectedTotal = Math.round(mtdCount + (dailyRate * workingDaysLeft));
 
-    return { mtdCount, mtdFrontEnd, mtdProfit, projectedTotal, monthlyGoal, workingDaysLeft };
+    return {
+      mtdNewCount, mtdUsedCount, mtdCount,
+      mtdNewFrontEnd, mtdUsedFrontEnd, mtdFrontEnd,
+      mtdNewBackEnd, mtdUsedBackEnd, mtdBackEnd,
+      mtdNewProfit, mtdUsedProfit, mtdProfit,
+      projectedTotal, monthlyGoal, workingDaysLeft
+    };
   };
 
   // Filter and sort salespeople
@@ -373,13 +407,13 @@ export default function SalespeoplePage() {
         <div className="overflow-x-auto">
           <table className="table table-lg">
             <thead className="bg-base-200">
-              <tr>
+              <tr className="text-xs">
                 <th>Salesperson</th>
                 <th className="text-center">MTD Sales</th>
                 <th className="text-center">Goal</th>
-                <th className="text-center">Progress</th>
-                <th className="text-right">Front End</th>
-                <th className="text-right">Gross</th>
+                <th className="text-center">Front End</th>
+                <th className="text-center">Back End</th>
+                <th className="text-center">Total Gross</th>
                 <th className="text-center">Pace</th>
                 <th>Actions</th>
               </tr>
@@ -387,74 +421,74 @@ export default function SalespeoplePage() {
             <tbody>
               {filteredSalespeople.map(person => {
                 const stats = getStats(person.id, person.monthlyGoal || 0);
-                const goalProgress = stats.monthlyGoal > 0 ? (stats.mtdCount / stats.monthlyGoal) * 100 : 0;
                 const paceOnTrack = stats.monthlyGoal > 0 ? stats.projectedTotal >= stats.monthlyGoal : true;
+                const formatNum = (n) => n % 1 === 0 ? n : n.toFixed(1);
                 return (
                   <tr key={person.id} className={`hover ${!person.active ? 'opacity-40 bg-base-200/50' : ''}`}>
                     {/* Name & Info */}
-                    <td>
+                    <td className="py-3">
                       <div className="flex items-center gap-3">
                         <div className="avatar placeholder">
-                          <div className={`rounded-full w-10 ${person.active ? 'bg-primary text-primary-content' : 'bg-base-300 text-base-content/50'}`}>
-                            <span className="text-lg">{person.name.charAt(0)}</span>
+                          <div className={`rounded-full w-9 ${person.active ? 'bg-primary text-primary-content' : 'bg-base-300 text-base-content/50'}`}>
+                            <span className="text-base">{person.name.charAt(0)}</span>
                           </div>
                         </div>
                         <div>
                           <div className={`font-bold ${!person.active ? 'text-base-content/60' : ''}`}>
                             {person.name}
-                            {!person.active && <span className="ml-2 text-xs font-normal text-base-content/40">(Inactive)</span>}
+                            {!person.active && <span className="ml-1 text-xs font-normal text-base-content/40">(Inactive)</span>}
                           </div>
-                          {person.nickname && <span className={`text-xs ${person.active ? 'text-primary' : 'text-base-content/40'}`}>"{person.nickname}"</span>}
-                          <div className="text-xs text-base-content/50">Since {new Date(person.hireDate).toLocaleDateString()}</div>
+                          {person.nickname && <span className={`text-sm ${person.active ? 'text-primary' : 'text-base-content/40'}`}>"{person.nickname}"</span>}
                         </div>
                       </div>
                     </td>
-                    {/* MTD Sales */}
-                    <td className="text-center">
-                      <span className="text-lg font-bold text-primary">
-                        {stats.mtdCount % 1 === 0 ? stats.mtdCount : stats.mtdCount.toFixed(1)}
-                      </span>
+                    {/* MTD Sales - New/Used/Total */}
+                    <td className="text-center py-3">
+                      <div className="text-sm space-y-0.5">
+                        <div><span className="font-semibold text-primary">{formatNum(stats.mtdNewCount)}</span> <span className="text-xs text-base-content/50">New</span></div>
+                        <div><span className="font-semibold text-secondary">{formatNum(stats.mtdUsedCount)}</span> <span className="text-xs text-base-content/50">Used</span></div>
+                        <div className="font-bold text-base border-t border-base-300 pt-1 mt-1">{formatNum(stats.mtdCount)}</div>
+                      </div>
                     </td>
                     {/* Goal */}
-                    <td className="text-center">
+                    <td className="text-center py-3">
                       {stats.monthlyGoal > 0 ? (
-                        <span className="font-medium">{stats.monthlyGoal}</span>
+                        <span className="text-base font-semibold">{stats.monthlyGoal}</span>
                       ) : (
                         <span className="text-base-content/40">—</span>
                       )}
                     </td>
-                    {/* Progress */}
-                    <td className="text-center">
-                      {stats.monthlyGoal > 0 ? (
-                        <div className="flex items-center gap-2">
-                          <progress
-                            className={`progress w-20 ${goalProgress >= 100 ? 'progress-success' : 'progress-primary'}`}
-                            value={Math.min(goalProgress, 100)}
-                            max="100"
-                          />
-                          <span className="text-xs font-medium">{goalProgress.toFixed(0)}%</span>
-                        </div>
-                      ) : (
-                        <span className="text-base-content/40">—</span>
-                      )}
+                    {/* Front End - New/Used stacked */}
+                    <td className="text-center py-3">
+                      <div className="text-sm space-y-0.5">
+                        <div className={stats.mtdNewFrontEnd >= 0 ? 'text-success' : 'text-error'}>{formatCurrency(stats.mtdNewFrontEnd)}</div>
+                        <div className={stats.mtdUsedFrontEnd >= 0 ? 'text-success' : 'text-error'}>{formatCurrency(stats.mtdUsedFrontEnd)}</div>
+                      </div>
                     </td>
-                    {/* Front End */}
-                    <td className={`text-right font-medium ${stats.mtdFrontEnd < 0 ? 'text-error' : ''}`}>
-                      {formatCurrency(stats.mtdFrontEnd)}
+                    {/* Back End - New/Used stacked */}
+                    <td className="text-center py-3">
+                      <div className="text-sm space-y-0.5">
+                        <div className={stats.mtdNewBackEnd >= 0 ? 'text-success' : 'text-error'}>{formatCurrency(stats.mtdNewBackEnd)}</div>
+                        <div className={stats.mtdUsedBackEnd >= 0 ? 'text-success' : 'text-error'}>{formatCurrency(stats.mtdUsedBackEnd)}</div>
+                      </div>
                     </td>
-                    {/* Gross */}
-                    <td className={`text-right font-bold ${stats.mtdProfit >= 0 ? 'text-success' : 'text-error'}`}>
-                      {formatCurrency(stats.mtdProfit)}
+                    {/* Total Gross - New/Used stacked */}
+                    <td className="text-center py-3">
+                      <div className="text-sm space-y-0.5">
+                        <div className={`font-medium ${stats.mtdNewProfit >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(stats.mtdNewProfit)}</div>
+                        <div className={`font-medium ${stats.mtdUsedProfit >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(stats.mtdUsedProfit)}</div>
+                        <div className={`font-bold text-base border-t border-base-300 pt-1 mt-1 ${stats.mtdProfit >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(stats.mtdProfit)}</div>
+                      </div>
                     </td>
                     {/* Pace */}
-                    <td className="text-center">
-                      <span className={`text-sm font-medium ${paceOnTrack ? 'text-success' : 'text-warning'}`}>
+                    <td className="text-center py-3">
+                      <span className={`text-base font-semibold ${paceOnTrack ? 'text-success' : 'text-warning'}`}>
                         {stats.projectedTotal}
                       </span>
-                      <div className="text-xs text-base-content/40">{stats.workingDaysLeft}d left</div>
+                      <div className="text-xs text-base-content/50">{stats.workingDaysLeft}d left</div>
                     </td>
                     {/* Actions */}
-                    <td>
+                    <td className="py-3">
                       <div className="flex gap-1">
                         <button
                           onClick={() => toggleActive(person)}

@@ -95,7 +95,7 @@ export default function SettingsPage() {
   };
 
   const getCurrentMonthTargets = () => {
-    return settings?.monthlyTargets?.[selectedMonth] || { workingDays: 22, usedCars: 0, cpo: 0 };
+    return settings?.monthlyTargets?.[selectedMonth] || { workingDays: 22, newCars: 0, usedCars: 0, cpo: 0 };
   };
 
   const getMonthOptions = () => {
@@ -387,6 +387,23 @@ export default function SettingsPage() {
                   <label className="label">
                     <span className="label-text-alt">Business days for this month</span>
                   </label>
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">New Cars Target</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="input input-bordered"
+                    value={currentTargets.newCars ?? ''}
+                    onChange={(e) => handleMonthlyTargetChange('newCars', e.target.value)}
+                    onBlur={(e) => {
+                      if (e.target.value === '' || isNaN(parseInt(e.target.value))) {
+                        handleMonthlyTargetChange('newCars', 0);
+                      }
+                    }}
+                  />
                 </div>
                 <div className="form-control">
                   <label className="label">

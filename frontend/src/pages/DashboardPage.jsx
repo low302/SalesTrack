@@ -7,7 +7,9 @@ import {
   Car,
   Target,
   Calendar,
-  Loader2
+  Loader2,
+  Sparkles,
+  Award
 } from 'lucide-react';
 import {
   LineChart,
@@ -58,73 +60,227 @@ function StatCard({ title, value, subtitle, icon: Icon, trend, color = 'primary'
   );
 }
 
-function ProgressCard({ title, current, target, color = 'primary' }) {
-  const progress = Math.min((current / target) * 100, 100);
-
+// Today's Sales Card with New/Used breakdown
+function TodaySalesCard({ newCount, usedCount }) {
   return (
     <div className="card bg-base-100 shadow-md">
       <div className="card-body p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium">{title}</span>
-          <span className="text-sm text-base-content/60">
-            {current} / {target}
-          </span>
+        <div className="flex items-start justify-between">
+          <p className="text-sm text-base-content/60">Today's Sales</p>
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Car className="w-5 h-5 text-primary" />
+          </div>
         </div>
-        <progress
-          className={`progress progress-${color} w-full`}
-          value={progress}
-          max="100"
-        />
-        <p className="text-xs text-base-content/50 mt-1">
-          {progress.toFixed(0)}% complete
-        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Sparkles className="w-3 h-3 text-primary" />
+              <span className="text-xs font-medium text-primary">New</span>
+            </div>
+            <p className="text-2xl font-bold">{newCount}</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Car className="w-3 h-3 text-secondary" />
+              <span className="text-xs font-medium text-secondary">Used</span>
+            </div>
+            <p className="text-2xl font-bold">{usedCount}</p>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function PaceCard({ soldUnits, color = 'primary' }) {
-  // Get current date in CST (America/Chicago)
+// Today's Gross Card with New/Used breakdown
+function TodayGrossCard({ newProfit, usedProfit, formatCurrency }) {
+  return (
+    <div className="card bg-base-100 shadow-md">
+      <div className="card-body p-4">
+        <div className="flex items-start justify-between">
+          <p className="text-sm text-base-content/60">Today's Gross</p>
+          <div className="p-2 rounded-lg bg-success/10">
+            <DollarSign className="w-5 h-5 text-success" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Sparkles className="w-3 h-3 text-primary" />
+              <span className="text-xs font-medium text-primary">New</span>
+            </div>
+            <p className={`text-2xl font-bold ${newProfit >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(newProfit)}</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Car className="w-3 h-3 text-secondary" />
+              <span className="text-xs font-medium text-secondary">Used</span>
+            </div>
+            <p className={`text-2xl font-bold ${usedProfit >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(usedProfit)}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// New/Used Breakdown Card for MTD Sales (no total)
+function MTDSalesCard({ newCount, usedCount }) {
+  return (
+    <div className="card bg-base-100 shadow-md">
+      <div className="card-body p-4">
+        <div className="flex items-start justify-between">
+          <p className="text-sm text-base-content/60">MTD Sales</p>
+          <div className="p-2 rounded-lg bg-secondary/10">
+            <Calendar className="w-5 h-5 text-secondary" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Sparkles className="w-3 h-3 text-primary" />
+              <span className="text-xs font-medium text-primary">New</span>
+            </div>
+            <p className="text-2xl font-bold">{newCount}</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Car className="w-3 h-3 text-secondary" />
+              <span className="text-xs font-medium text-secondary">Used</span>
+            </div>
+            <p className="text-2xl font-bold">{usedCount}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// New/Used Breakdown Card for MTD Gross (no total)
+function MTDGrossCard({ newProfit, usedProfit, formatCurrency }) {
+  return (
+    <div className="card bg-base-100 shadow-md">
+      <div className="card-body p-4">
+        <div className="flex items-start justify-between">
+          <p className="text-sm text-base-content/60">MTD Gross</p>
+          <div className="p-2 rounded-lg bg-success/10">
+            <DollarSign className="w-5 h-5 text-success" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Sparkles className="w-3 h-3 text-primary" />
+              <span className="text-xs font-medium text-primary">New</span>
+            </div>
+            <p className={`text-2xl font-bold ${newProfit >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(newProfit)}</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Car className="w-3 h-3 text-secondary" />
+              <span className="text-xs font-medium text-secondary">Used</span>
+            </div>
+            <p className={`text-2xl font-bold ${usedProfit >= 0 ? 'text-success' : 'text-error'}`}>{formatCurrency(usedProfit)}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// New/Used Breakdown Pace Card (no total)
+function PaceCardBreakdown({ newSold, usedSold }) {
   const now = new Date();
   const cstString = now.toLocaleString('en-US', { timeZone: 'America/Chicago' });
   const cstDate = new Date(cstString);
-
   const dayOfMonth = cstDate.getDate();
   const year = cstDate.getFullYear();
   const month = cstDate.getMonth();
-
-  // Get total days in current month
   const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
 
-  // Calculate working days (excluding Sundays) remaining in month
   let workingDaysLeft = 0;
   for (let d = dayOfMonth + 1; d <= totalDaysInMonth; d++) {
     const date = new Date(year, month, d);
-    if (date.getDay() !== 0) { // 0 = Sunday
-      workingDaysLeft++;
-    }
+    if (date.getDay() !== 0) workingDaysLeft++;
   }
 
-  // Days since 1st (including today)
   const daysSinceFirst = dayOfMonth;
+  const calcPace = (sold) => {
+    const rate = daysSinceFirst > 0 ? sold / daysSinceFirst : 0;
+    return Math.round(sold + (rate * workingDaysLeft));
+  };
 
-  // Calculate pace: (soldUnits / daysSinceFirst) * workingDaysLeft + soldUnits
-  const dailyRate = daysSinceFirst > 0 ? soldUnits / daysSinceFirst : 0;
-  const projectedTotal = Math.round(soldUnits + (dailyRate * workingDaysLeft));
+  const newPace = calcPace(newSold);
+  const usedPace = calcPace(usedSold);
 
   return (
     <div className="card bg-base-100 shadow-md">
       <div className="card-body p-4">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-medium">Current Pace</span>
-          <span className="text-sm text-base-content/60">
-            {workingDaysLeft} working days left
-          </span>
+          <span className="text-sm text-base-content/60">{workingDaysLeft} days left</span>
         </div>
-        <p className={`text-3xl font-bold text-${color}`}>{projectedTotal}</p>
-        <p className="text-xs text-base-content/50 mt-1">
-          Projected units this month at {dailyRate.toFixed(1)}/day
-        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Sparkles className="w-3 h-3 text-primary" />
+              <span className="text-xs font-medium text-primary">New</span>
+            </div>
+            <p className="text-2xl font-bold text-primary">{newPace}</p>
+            <p className="text-xs text-base-content/50">{newSold} sold</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Car className="w-3 h-3 text-secondary" />
+              <span className="text-xs font-medium text-secondary">Used</span>
+            </div>
+            <p className="text-2xl font-bold text-secondary">{usedPace}</p>
+            <p className="text-xs text-base-content/50">{usedSold} sold</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Monthly Target Card with New/Used/CPO breakdown and individual progress bars
+function TargetCardBreakdown({ newCount, usedCount, cpoCount, newTarget, usedTarget, cpoTarget }) {
+  const newProgress = Math.min((newCount / newTarget) * 100, 100);
+  const usedProgress = Math.min((usedCount / usedTarget) * 100, 100);
+  const cpoProgress = Math.min((cpoCount / cpoTarget) * 100, 100);
+
+  return (
+    <div className="card bg-base-100 shadow-md">
+      <div className="card-body p-4">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-medium">Monthly Targets</span>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              <Sparkles className="w-3 h-3 text-primary" />
+              <span className="text-xs font-medium text-primary">New</span>
+            </div>
+            <p className="text-xl font-bold">{newCount}<span className="text-xs font-normal text-base-content/50">/{newTarget}</span></p>
+            <progress className="progress progress-primary w-full h-2 mt-1" value={newProgress} max="100" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              <Car className="w-3 h-3 text-secondary" />
+              <span className="text-xs font-medium text-secondary">Used</span>
+            </div>
+            <p className="text-xl font-bold">{usedCount}<span className="text-xs font-normal text-base-content/50">/{usedTarget}</span></p>
+            <progress className="progress progress-secondary w-full h-2 mt-1" value={usedProgress} max="100" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              <Award className="w-3 h-3 text-info" />
+              <span className="text-xs font-medium text-info">CPO</span>
+            </div>
+            <p className="text-xl font-bold">{cpoCount}<span className="text-xs font-normal text-base-content/50">/{cpoTarget}</span></p>
+            <progress className="progress progress-info w-full h-2 mt-1" value={cpoProgress} max="100" />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -132,20 +288,30 @@ function PaceCard({ soldUnits, color = 'primary' }) {
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
+  const [newData, setNewData] = useState(null);
+  const [usedData, setUsedData] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { getDashboard } = useApi();
+  const { getDashboard, getNewDashboard, getUsedDashboard, getSettings } = useApi();
 
   useEffect(() => {
     loadDashboard();
-    // Auto-refresh every 30 seconds to pick up new sales
     const interval = setInterval(loadDashboard, 30000);
     return () => clearInterval(interval);
   }, []);
 
   const loadDashboard = async () => {
     try {
-      const dashboardData = await getDashboard();
+      const [dashboardData, newDashboardData, usedDashboardData, settingsData] = await Promise.all([
+        getDashboard(),
+        getNewDashboard(),
+        getUsedDashboard(),
+        getSettings()
+      ]);
       setData(dashboardData);
+      setNewData(newDashboardData);
+      setUsedData(usedDashboardData);
+      setSettings(settingsData);
     } catch (error) {
       console.error('Failed to load dashboard:', error);
     } finally {
@@ -170,7 +336,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!data) {
+  if (!data || !newData || !usedData) {
     return (
       <div className="alert alert-error">
         Failed to load dashboard data. Please try again.
@@ -178,21 +344,28 @@ export default function DashboardPage() {
     );
   }
 
+  // Calculate CPO count from used data soldList
+  const cpoCount = usedData.soldList?.filter(s => s.cpo).length || 0;
+
+  // Get current month targets from settings
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const monthTargets = settings?.monthlyTargets?.[currentMonth] || {};
+  const newTarget = monthTargets.newCars || 50;
+  const usedTarget = monthTargets.usedCars || 30;
+  const cpoTarget = monthTargets.cpo || 10;
+
   // Prepare chart data
   const dailyChartData = data.dailySales.map(d => ({
     ...d,
     date: new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }));
 
-  // Format monthly data - parse year and month directly to avoid timezone issues
   const monthlyChartData = data.monthlySales.map(d => {
     const [year, month] = d.month.split('-');
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const monthLabel = `${monthNames[parseInt(month) - 1]} '${year.slice(-2)}`;
-    return {
-      ...d,
-      month: monthLabel
-    };
+    return { ...d, month: monthLabel };
   });
 
   return (
@@ -205,45 +378,39 @@ export default function DashboardPage() {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Today's Sales"
-          value={data.today.count}
-          subtitle={`Front: ${formatCurrency(data.today.revenue)}`}
-          icon={Car}
-          color="primary"
+        <TodaySalesCard
+          newCount={newData.today.count}
+          usedCount={usedData.today.count}
         />
-        <StatCard
-          title="Today's Gross"
-          value={formatCurrency(data.today.profit)}
-          icon={DollarSign}
-          color="success"
+        <TodayGrossCard
+          newProfit={newData.today.profit}
+          usedProfit={usedData.today.profit}
+          formatCurrency={formatCurrency}
         />
-        <StatCard
-          title="MTD Sales"
-          value={data.month.count}
-          subtitle={`Front: ${formatCurrency(data.month.revenue)}`}
-          icon={Calendar}
-          color="secondary"
+        <MTDSalesCard
+          newCount={newData.month.count}
+          usedCount={usedData.month.count}
         />
-        <StatCard
-          title="MTD Gross"
-          value={formatCurrency(data.month.profit)}
-          icon={TrendingUp}
-          color="accent"
+        <MTDGrossCard
+          newProfit={newData.month.profit}
+          usedProfit={usedData.month.profit}
+          formatCurrency={formatCurrency}
         />
       </div>
 
       {/* Progress Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <PaceCard
-          soldUnits={data.month.count}
-          color="primary"
+        <PaceCardBreakdown
+          newSold={newData.month.count}
+          usedSold={usedData.month.count}
         />
-        <ProgressCard
-          title="Monthly Target"
-          current={data.targets.monthly.actual}
-          target={data.targets.monthly.target}
-          color="secondary"
+        <TargetCardBreakdown
+          newCount={newData.month.count}
+          usedCount={usedData.month.count}
+          cpoCount={cpoCount}
+          newTarget={newTarget}
+          usedTarget={usedTarget}
+          cpoTarget={cpoTarget}
         />
       </div>
 
@@ -257,29 +424,16 @@ export default function DashboardPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={dailyChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12 }}
-                    interval="preserveStartEnd"
-                  />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} interval="preserveStartEnd" />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip
                     formatter={(value, name) => [
-                      name === 'revenue' || name === 'profit'
-                        ? formatCurrency(value)
-                        : value,
+                      name === 'revenue' || name === 'profit' ? formatCurrency(value) : value,
                       name.charAt(0).toUpperCase() + name.slice(1)
                     ]}
                   />
                   <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="count"
-                    stroke="#3b82f6"
-                    fill="#3b82f6"
-                    fillOpacity={0.3}
-                    name="Sales"
-                  />
+                  <Area type="monotone" dataKey="count" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} name="Sales" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -295,13 +449,8 @@ export default function DashboardPage() {
                 <BarChart data={monthlyChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                  />
-                  <Tooltip
-                    formatter={(value) => [formatCurrency(value), 'Revenue']}
-                  />
+                  <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+                  <Tooltip formatter={(value) => [formatCurrency(value), 'Revenue']} />
                   <Legend />
                   <Bar dataKey="revenue" fill="#8b5cf6" name="Revenue" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -320,30 +469,11 @@ export default function DashboardPage() {
               <LineChart data={monthlyChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                />
-                <Tooltip
-                  formatter={(value) => [formatCurrency(value)]}
-                />
+                <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+                <Tooltip formatter={(value) => [formatCurrency(value)]} />
                 <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="profit"
-                  stroke="#22c55e"
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                  name="Profit"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                  name="Revenue"
-                />
+                <Line type="monotone" dataKey="profit" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} name="Profit" />
+                <Line type="monotone" dataKey="revenue" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} name="Revenue" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -371,9 +501,7 @@ export default function DashboardPage() {
                     <td>
                       <span className={`badge ${index === 0 ? 'badge-primary' :
                         index === 1 ? 'badge-secondary' :
-                          index === 2 ? 'badge-accent' :
-                            'badge-ghost'
-                        }`}>
+                          index === 2 ? 'badge-accent' : 'badge-ghost'}`}>
                         #{index + 1}
                       </span>
                     </td>
