@@ -28,6 +28,27 @@ export function useApi() {
     return res;
   };
 
+  // For file uploads (no JSON Content-Type)
+  const fetchWithAuthFormData = async (endpoint, options = {}) => {
+    const headers = { ...options.headers };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      logout();
+      throw new Error('Session expired');
+    }
+
+    return res;
+  };
+
   // Sales API
   const getSales = async (filters = {}) => {
     const params = new URLSearchParams(filters);
@@ -176,6 +197,25 @@ export function useApi() {
     return res.json();
   };
 
+  // PDF Import API
+  const importSalesPDF = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetchWithAuthFormData('/sales/import-pdf', {
+      method: 'POST',
+      body: formData
+    });
+    return res.json();
+  };
+
+  const confirmSalesImport = async (records) => {
+    const res = await fetchWithAuth('/sales/import-pdf/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ records })
+    });
+    return res.json();
+  };
+
   return {
     getSales,
     createSale,
@@ -197,7 +237,9 @@ export function useApi() {
     createTeam,
     updateTeam,
     deleteTeam,
-    getTeamStats
+    getTeamStats,
+    importSalesPDF,
+    confirmSalesImport
   };
 }
 

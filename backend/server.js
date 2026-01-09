@@ -5,6 +5,65 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
+
+// PDF.js for parsing PDFs
+const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.mjs');
+
+// Helper function to extract text from PDF buffer
+async function extractPdfText(buffer) {
+  const uint8Array = new Uint8Array(buffer);
+  const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
+  const pdf = await loadingTask.promise;
+
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map(item => item.str).join(' ');
+    fullText += pageText + '\n';
+  }
+
+  return { text: fullText, numpages: pdf.numPages };
+}
+
+// Helper function to format names: First Last only, Title Case
+function formatName(name) {
+  if (!name) return '';
+
+  // Split name into parts and filter empty
+  const parts = name.trim().split(/\s+/).filter(p => p);
+
+  if (parts.length === 0) return '';
+
+  // Get first and last name only (skip middle names)
+  let firstName = parts[0];
+  let lastName = parts.length > 1 ? parts[parts.length - 1] : '';
+
+  // Convert to Title Case (first letter uppercase, rest lowercase)
+  const toTitleCase = (str) => {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+
+  firstName = toTitleCase(firstName);
+  lastName = toTitleCase(lastName);
+
+  return lastName ? `${firstName} ${lastName}` : firstName;
+}
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'), false);
+    }
+  }
+});
 
 const app = express();
 const PORT = process.env.PORT || 9000;
@@ -901,6 +960,377 @@ app.get('/api/teams/:id/stats', authenticateToken, (req, res) => {
       goalProgress: team.goal > 0 ? (totalCount / team.goal) * 100 : 0
     }
   });
+});
+
+// ============ PDF IMPORT ROUTES ============
+
+// Helper function to parse F&I Management Report PDF
+function parseFIReportPDF(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+  const records = [];
+
+  // Find where the actual data starts (after header row)
+  let dataStartIndex = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('Deal Date') && lines[i].includes('Deal Number')) {
+      dataStartIndex = i + 1;
+      break;
+    }
+  }
+
+  // Parse the combined text block - the PDF text comes as a continuous string per record
+  // We need to identify patterns: Date at start (MM/DD/YYYY), then deal number, etc.
+  const datePattern = /^(\d{1,2}\/\d{1,2}\/\d{4})/;
+  const fullText = text;
+
+  // Split by date patterns to get individual records
+  const recordTexts = fullText.split(/(?=\d{1,2}\/\d{1,2}\/\d{4})/);
+
+  for (const recordText of recordTexts) {
+    const trimmed = recordText.trim();
+    if (!trimmed || !datePattern.test(trimmed)) continue;
+
+    try {
+      // Extract date
+      const dateMatch = trimmed.match(datePattern);
+      if (!dateMatch) continue;
+      const dealDate = dateMatch[1];
+
+      // Extract deal number (5-6 digits after date)
+      const dealNumMatch = trimmed.match(/\d{1,2}\/\d{1,2}\/\d{4}\s*(\d{5,6})/);
+      if (!dealNumMatch) continue;
+      const dealNumber = dealNumMatch[1];
+
+      // Extract deal type (Retail or Lease)
+      const dealTypeMatch = trimmed.match(/\d{5,6}\s*(Retail|Lease)/i);
+      const dealType = dealTypeMatch ? dealTypeMatch[1] : 'Retail';
+
+      // Extract vehicle year, make, model (YYYY MAKE MODEL pattern)
+      const vehicleMatch = trimmed.match(/(Retail|Lease)\s*(\d{4})\s*([A-Z]+)\s+([A-Z][A-Z0-9\s\.]+?)(?=\s+[\d\-,]+\.\d{2}|\s+\d{1}[A-Z]\d)/i);
+      let vehicleYear = '', vehicleMake = '', vehicleModel = '';
+      if (vehicleMatch) {
+        vehicleYear = vehicleMatch[2];
+        vehicleMake = vehicleMatch[3].trim();
+        vehicleModel = vehicleMatch[4].trim().replace(/\.{3}$/, '');
+      }
+
+      // Extract price and stock number - look for pattern like "34,159.07 5S8959B" or just price
+      const priceStockMatch = trimmed.match(/([0-9,]+\.\d{2})\s+([A-Z0-9]+)?\s+(-?[0-9,]+\.\d{2})\s+(-?[0-9,]+\.\d{2})/);
+      let vehiclePrice = 0, stockNumber = '', frontEnd = 0, backEnd = 0;
+
+      if (priceStockMatch) {
+        vehiclePrice = parseFloat(priceStockMatch[1].replace(/,/g, ''));
+        stockNumber = priceStockMatch[2] || '';
+        frontEnd = parseFloat(priceStockMatch[3].replace(/,/g, ''));
+        backEnd = parseFloat(priceStockMatch[4].replace(/,/g, ''));
+      }
+
+      // Extract salesperson(s) - pattern: NAME (ID)
+      const salespersonMatches = trimmed.matchAll(/([A-Z][A-Z\s]+?)\s*\((\d+)\)/g);
+      const salespeople = Array.from(salespersonMatches).map(m => ({
+        name: formatName(m[1].trim()),
+        employeeId: m[2]
+      }));
+
+      // First salesperson is primary, second is split if exists, third is desk manager
+      let salesperson1 = salespeople[0] || null;
+      let salesperson2 = null;
+      let deskManager = null;
+
+      if (salespeople.length >= 3) {
+        salesperson2 = salespeople[1];
+        deskManager = salespeople[2];
+      } else if (salespeople.length === 2) {
+        // Could be sp1 + desk or sp1 + sp2 - check if second appears to be desk manager
+        // Desk managers typically have names like JEFFERY D SAPP, JOSE M AYALA
+        deskManager = salespeople[1];
+      }
+
+      // Find the last person with ID (desk manager) - everything after is notes + customer name
+      const personIdMatches = [...trimmed.matchAll(/\(\d+\)/g)];
+      let remainingText = '';
+      if (personIdMatches.length > 0) {
+        const lastMatch = personIdMatches[personIdMatches.length - 1];
+        const lastIndex = lastMatch.index + lastMatch[0].length;
+        remainingText = trimmed.slice(lastIndex).trim();
+      }
+
+      // Extract customer name - proper name pattern (FIRST MIDDLE? LAST) at the end
+      // Customer names look like "HAYLEY ELIZABETH SMITH" or "DANIEL ANTHONY SORIA"
+      // They appear after notes and before "Yes" (if certified)
+      let customerName = '';
+      let notes = '';
+
+      // Check if certified (ends with Yes)
+      const certified = /\bYes\s*$/.test(trimmed); // Keep original certified logic
+
+      // Remove trailing "Yes" if present from remainingText
+      const certifiedMatchInRemaining = remainingText.match(/\s+Yes\s*$/);
+      if (certifiedMatchInRemaining) {
+        remainingText = remainingText.slice(0, -certifiedMatchInRemaining[0].length);
+      }
+
+      // Split remaining text - look for customer name pattern at end
+      // Customer names are 2-4 capitalized words without numbers or special chars like /
+      // Also allow trailing ellipsis (PDF truncation)
+
+      // First remove trailing ellipsis if present
+      remainingText = remainingText.replace(/\.{3}$/, '').trim();
+
+      // Common business keywords to exclude from customer names
+      const businessKeywords = /\d|\/|TBB|SAF|FUNDED|FUNDING|PENDING|HOLDING|RESIGN|LEASE|BUYOUT|CANCEL|ADDS|PRICING|MANAGER|TITLE/i;
+
+      const customerNameMatch = remainingText.match(/\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){1,3})\s*$/);
+      if (customerNameMatch && !customerNameMatch[1].match(businessKeywords)) {
+        customerName = customerNameMatch[1].trim();
+        notes = remainingText.slice(0, remainingText.length - customerNameMatch[0].length).trim();
+      } else {
+        // Try all-caps pattern for names like "DANIEL ANTHONY SORIA"
+        const capsCustomerMatch = remainingText.match(/\s+([A-Z]+(?:\s+[A-Z]+){1,3})\s*$/);
+        if (capsCustomerMatch && !capsCustomerMatch[1].match(businessKeywords)) {
+          customerName = capsCustomerMatch[1].trim();
+          notes = remainingText.slice(0, remainingText.length - capsCustomerMatch[0].length).trim();
+        } else {
+          notes = remainingText.trim();
+        }
+      }
+
+      // Convert date from MM/DD/YYYY to YYYY-MM-DD
+      const dateParts = dealDate.split('/');
+      const saleDate = `${dateParts[2]}-${dateParts[0].padStart(2, '0')}-${dateParts[1].padStart(2, '0')}`;
+
+      records.push({
+        saleDate,
+        dealNumber,
+        dealType,
+        vehicleYear: parseInt(vehicleYear) || null,
+        vehicleMake,
+        vehicleModel,
+        vehiclePrice,
+        stockNumber,
+        frontEnd,
+        backEnd,
+        grossProfit: frontEnd + backEnd,
+        salesperson1,
+        salesperson2,
+        deskManager: deskManager ? formatName(deskManager.name) : '',
+        customerName: formatName(customerName),
+        certified,
+        notes,
+        rawText: trimmed.substring(0, 200) // For debugging
+      });
+    } catch (err) {
+      console.error('Error parsing record:', err.message);
+    }
+  }
+
+  return records;
+}
+
+// Preview PDF import - returns parsed data with duplicate detection
+app.post('/api/sales/import-pdf', authenticateToken, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No PDF file uploaded' });
+    }
+
+    // Parse PDF
+    const pdfData = await extractPdfText(req.file.buffer);
+    const records = parseFIReportPDF(pdfData.text);
+
+    if (records.length === 0) {
+      return res.status(400).json({ error: 'No valid records found in PDF. Ensure this is an F&I Management Report.' });
+    }
+
+    // Get existing data for duplicate detection and salesperson matching
+    const existingSales = readJSON(SALES_FILE, []);
+    const existingSalespeople = readJSON(SALESPEOPLE_FILE, []);
+
+    // Process each record
+    const processedRecords = records.map(record => {
+      // Check for duplicate by deal number
+      const existingSale = existingSales.find(s => s.dealNumber === record.dealNumber);
+
+      // Match or prepare to create salespeople
+      let salesperson1Match = null;
+      let salesperson2Match = null;
+
+      if (record.salesperson1) {
+        salesperson1Match = existingSalespeople.find(sp =>
+          sp.employeeId === record.salesperson1.employeeId ||
+          sp.name.toLowerCase() === record.salesperson1.name.toLowerCase()
+        );
+      }
+
+      if (record.salesperson2) {
+        salesperson2Match = existingSalespeople.find(sp =>
+          sp.employeeId === record.salesperson2.employeeId ||
+          sp.name.toLowerCase() === record.salesperson2.name.toLowerCase()
+        );
+      }
+
+      return {
+        ...record,
+        isDuplicate: !!existingSale,
+        existingSaleId: existingSale?.id || null,
+        salesperson1Exists: !!salesperson1Match,
+        salesperson1Id: salesperson1Match?.id || null,
+        salesperson2Exists: !!salesperson2Match,
+        salesperson2Id: salesperson2Match?.id || null,
+        duplicateAction: existingSale ? 'skip' : 'create' // Default action
+      };
+    });
+
+    res.json({
+      success: true,
+      totalRecords: processedRecords.length,
+      duplicates: processedRecords.filter(r => r.isDuplicate).length,
+      newSalespeople: processedRecords.filter(r => r.salesperson1 && !r.salesperson1Exists).length,
+      records: processedRecords
+    });
+
+  } catch (error) {
+    console.error('PDF import error:', error);
+    res.status(500).json({ error: 'Failed to parse PDF: ' + error.message });
+  }
+});
+
+// Confirm and execute PDF import
+app.post('/api/sales/import-pdf/confirm', authenticateToken, async (req, res) => {
+  try {
+    const { records } = req.body;
+
+    if (!records || !Array.isArray(records)) {
+      return res.status(400).json({ error: 'Invalid request: records array required' });
+    }
+
+    const sales = readJSON(SALES_FILE, []);
+    const salespeople = readJSON(SALESPEOPLE_FILE, []);
+    const settings = readJSON(SETTINGS_FILE, {});
+    const packAmount = settings.packAmount || 500;
+
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+    let salespeopleCreated = 0;
+
+    for (const record of records) {
+      // Skip if action is skip
+      if (record.duplicateAction === 'skip' && record.isDuplicate) {
+        skipped++;
+        continue;
+      }
+
+      // Create/update salesperson 1
+      let salesperson1Id = record.salesperson1Id;
+      if (record.salesperson1 && !salesperson1Id) {
+        const newSp = {
+          id: uuidv4(),
+          name: record.salesperson1.name,
+          employeeId: record.salesperson1.employeeId,
+          nickname: '',
+          active: true,
+          hireDate: new Date().toISOString().split('T')[0],
+          monthlyGoal: 0
+        };
+        salespeople.push(newSp);
+        salesperson1Id = newSp.id;
+        salespeopleCreated++;
+      } else if (record.salesperson1 && salesperson1Id) {
+        // Update existing salesperson with employeeId if missing
+        const spIndex = salespeople.findIndex(sp => sp.id === salesperson1Id);
+        if (spIndex !== -1 && !salespeople[spIndex].employeeId) {
+          salespeople[spIndex].employeeId = record.salesperson1.employeeId;
+        }
+      }
+
+      // Create/update salesperson 2
+      let salesperson2Id = record.salesperson2Id;
+      if (record.salesperson2 && !salesperson2Id) {
+        const newSp = {
+          id: uuidv4(),
+          name: record.salesperson2.name,
+          employeeId: record.salesperson2.employeeId,
+          nickname: '',
+          active: true,
+          hireDate: new Date().toISOString().split('T')[0],
+          monthlyGoal: 0
+        };
+        salespeople.push(newSp);
+        salesperson2Id = newSp.id;
+        salespeopleCreated++;
+      }
+
+      const isSplit = !!salesperson2Id;
+
+      const saleData = {
+        dealNumber: record.dealNumber,
+        stockNumber: record.stockNumber,
+        frontEnd: record.frontEnd,
+        backEnd: record.backEnd,
+        packAmount,
+        grossProfit: record.frontEnd + record.backEnd,
+        salespersonId: salesperson1Id,
+        secondSalespersonId: salesperson2Id,
+        isSplit,
+        saleDate: record.saleDate,
+        customerName: record.customerName,
+        vehicleYear: record.vehicleYear,
+        vehicleMake: record.vehicleMake,
+        vehicleModel: record.vehicleModel,
+        vehiclePrice: record.vehiclePrice,
+        dealType: record.dealType,
+        deskManager: record.deskManager,
+        certified: record.certified,
+        cpo: record.certified, // Map certified to cpo
+        serviceComplete: true,  // Auto-mark as complete for PDF imports
+        sslp: false,
+        delivered: true,        // Auto-mark as delivered for PDF imports
+        notes: record.notes,
+        importedAt: new Date().toISOString()
+      };
+
+      if (record.duplicateAction === 'update' && record.existingSaleId) {
+        // Update existing sale
+        const saleIndex = sales.findIndex(s => s.id === record.existingSaleId);
+        if (saleIndex !== -1) {
+          sales[saleIndex] = {
+            ...sales[saleIndex],
+            ...saleData,
+            updatedAt: new Date().toISOString()
+          };
+          updated++;
+        }
+      } else {
+        // Create new sale
+        const newSale = {
+          id: uuidv4(),
+          ...saleData,
+          createdBy: req.user.id,
+          createdAt: new Date().toISOString()
+        };
+        sales.push(newSale);
+        created++;
+      }
+    }
+
+    // Save changes
+    writeJSON(SALES_FILE, sales);
+    writeJSON(SALESPEOPLE_FILE, salespeople);
+
+    res.json({
+      success: true,
+      created,
+      updated,
+      skipped,
+      salespeopleCreated,
+      totalProcessed: created + updated + skipped
+    });
+
+  } catch (error) {
+    console.error('PDF import confirm error:', error);
+    res.status(500).json({ error: 'Failed to import records: ' + error.message });
+  }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
