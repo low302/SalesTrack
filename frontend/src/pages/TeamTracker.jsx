@@ -255,16 +255,16 @@ export default function TeamTracker() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white p-6">
+        <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white p-10">
             {/* Header */}
-            <div className="relative mb-8">
+            <div className="relative mb-12">
                 {/* Title and Quote - Centered */}
-                <div className="text-center pt-2">
-                    <h1 className="text-5xl font-bold text-white mb-3">
+                <div className="text-center pt-4">
+                    <h1 className="text-7xl font-bold text-white mb-6">
                         Brandon Tomes Subaru
                     </h1>
                     {settings?.quoteOfTheDay && (
-                        <p className="text-2xl text-blue-400 font-medium italic max-w-4xl mx-auto">
+                        <p className="text-3xl text-blue-400 font-medium italic max-w-5xl mx-auto">
                             "{settings.quoteOfTheDay}"
                         </p>
                     )}
@@ -272,45 +272,45 @@ export default function TeamTracker() {
 
                 {/* Clock - Absolute Right */}
                 <div className="absolute top-0 right-0 text-right">
-                    <div className="text-5xl font-bold text-white tabular-nums">
+                    <div className="text-7xl font-bold text-white tabular-nums">
                         {currentTime.toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: '2-digit', minute: '2-digit' })}
                     </div>
-                    <div className="text-gray-500 text-sm">
+                    <div className="text-gray-500 text-xl">
                         {currentTime.toLocaleDateString('en-US', { timeZone: 'America/Chicago', weekday: 'long', month: 'short', day: 'numeric' })}
                     </div>
                 </div>
             </div>
 
             {/* Competition Summary */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
-                <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-4 border border-gray-700/50">
-                    <div className="text-gray-400 text-sm font-medium mb-1">New Sold Today</div>
-                    <div className="text-4xl font-bold text-white">
+            <div className="grid grid-cols-4 gap-6 mb-10">
+                <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-8 border border-gray-700/50">
+                    <div className="text-gray-400 text-xl font-medium mb-3">New Sold Today</div>
+                    <div className="text-6xl font-bold text-white">
                         {todaySales.todayNewCount % 1 === 0 ? todaySales.todayNewCount : todaySales.todayNewCount.toFixed(1)}
                     </div>
                 </div>
-                <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-4 border border-gray-700/50">
-                    <div className="text-gray-400 text-sm font-medium mb-1">Used Sold Today</div>
-                    <div className="text-4xl font-bold text-white">
+                <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-8 border border-gray-700/50">
+                    <div className="text-gray-400 text-xl font-medium mb-3">Used Sold Today</div>
+                    <div className="text-6xl font-bold text-white">
                         {todaySales.todayUsedCount % 1 === 0 ? todaySales.todayUsedCount : todaySales.todayUsedCount.toFixed(1)}
                     </div>
                 </div>
-                <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-4 border border-gray-700/50">
-                    <div className="text-gray-400 text-sm font-medium mb-1">Total New Car Gross</div>
-                    <div className={`text-4xl font-bold ${competitionStats.totalNewGross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-8 border border-gray-700/50">
+                    <div className="text-gray-400 text-xl font-medium mb-3">Total New Car Gross</div>
+                    <div className={`text-6xl font-bold ${competitionStats.totalNewGross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         {formatCurrency(competitionStats.totalNewGross)}
                     </div>
                 </div>
-                <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-4 border border-gray-700/50">
-                    <div className="text-gray-400 text-sm font-medium mb-1">Total Used Car Gross</div>
-                    <div className={`text-4xl font-bold ${competitionStats.totalUsedGross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-8 border border-gray-700/50">
+                    <div className="text-gray-400 text-xl font-medium mb-3">Total Used Car Gross</div>
+                    <div className={`text-6xl font-bold ${competitionStats.totalUsedGross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         {formatCurrency(competitionStats.totalUsedGross)}
                     </div>
                 </div>
             </div>
 
             {/* Teams Grid - Side by Side */}
-            <div className={`grid gap-4 ${sortedTeams.length === 2 ? 'grid-cols-2' : sortedTeams.length >= 3 ? 'grid-cols-3' : 'grid-cols-1'}`}>
+            <div className={`grid gap-6 ${sortedTeams.length === 2 ? 'grid-cols-2' : sortedTeams.length >= 3 ? 'grid-cols-3' : 'grid-cols-1'}`}>
                 {sortedTeams.map((team, index) => {
                     const { totalCount, totalNewCount, totalUsedCount, totalNewGross, totalUsedGross, memberStats } = team.stats;
                     const goalProgress = team.goal > 0 ? (totalCount / team.goal) * 100 : 0;
@@ -323,28 +323,28 @@ export default function TeamTracker() {
                             style={{ borderTopWidth: '4px', borderTopColor: team.color }}
                         >
                             {/* Team Header */}
-                            <div className="p-4 border-b border-gray-700/50">
-                                <div className="flex items-center gap-4">
+                            <div className="p-6 border-b border-gray-700/50">
+                                <div className="flex items-center gap-6">
                                     {/* Team Name + Stats */}
                                     <div className="flex-1 min-w-0 flex flex-col items-center text-center">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <h2 className="text-2xl font-bold text-white truncate">{team.name}</h2>
+                                        <div className="flex items-center justify-center gap-3">
+                                            <h2 className="text-4xl font-bold text-white truncate">{team.name}</h2>
                                             {team.contestName && (
                                                 <span
-                                                    className="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
+                                                    className="text-base px-3 py-1 rounded-full flex-shrink-0"
                                                     style={{ backgroundColor: team.color, color: 'white' }}
                                                 >
                                                     {team.contestName}
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="flex items-center justify-center gap-3 mt-1 text-gray-400 text-sm">
-                                            <span className="flex items-center gap-1">
-                                                <Users size={12} />
+                                        <div className="flex items-center justify-center gap-4 mt-2 text-gray-400 text-lg">
+                                            <span className="flex items-center gap-2">
+                                                <Users size={18} />
                                                 {team.members.length}
                                             </span>
                                             {team.startDate && team.endDate && (
-                                                <span className="text-xs">
+                                                <span className="text-base">
                                                     {new Date(team.startDate).toLocaleDateString()} - {new Date(team.endDate).toLocaleDateString()}
                                                 </span>
                                             )}
@@ -352,49 +352,49 @@ export default function TeamTracker() {
                                     </div>
 
                                     {/* Sales Counters - New / Used / Total */}
-                                    <div className="flex items-center gap-2 flex-shrink-0 bg-gray-900/50 rounded-xl px-4 py-2">
-                                        <div className="text-center px-3 border-r border-gray-700">
-                                            <div className="text-2xl font-bold text-blue-400 tabular-nums">
+                                    <div className="flex items-center gap-3 flex-shrink-0 bg-gray-900/50 rounded-xl px-6 py-4">
+                                        <div className="text-center px-4 border-r border-gray-700">
+                                            <div className="text-4xl font-bold text-blue-400 tabular-nums">
                                                 {totalNewCount % 1 === 0 ? totalNewCount : totalNewCount.toFixed(1)}
                                             </div>
-                                            <div className="text-gray-400 text-xs font-medium">New</div>
+                                            <div className="text-gray-400 text-base font-medium mt-1">New</div>
                                         </div>
-                                        <div className="text-center px-3 border-r border-gray-700">
-                                            <div className="text-2xl font-bold text-orange-400 tabular-nums">
+                                        <div className="text-center px-4 border-r border-gray-700">
+                                            <div className="text-4xl font-bold text-orange-400 tabular-nums">
                                                 {totalUsedCount % 1 === 0 ? totalUsedCount : totalUsedCount.toFixed(1)}
                                             </div>
-                                            <div className="text-gray-400 text-xs font-medium">Used</div>
+                                            <div className="text-gray-400 text-base font-medium mt-1">Used</div>
                                         </div>
-                                        <div className="text-center px-3">
-                                            <div className="text-3xl font-bold text-white tabular-nums">
+                                        <div className="text-center px-4">
+                                            <div className="text-5xl font-bold text-white tabular-nums">
                                                 {totalCount % 1 === 0 ? totalCount : totalCount.toFixed(1)}
                                             </div>
-                                            <div className="text-gray-400 text-xs font-medium">Total</div>
+                                            <div className="text-gray-400 text-base font-medium mt-1">Total</div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Team Stats Row */}
-                                <div className="flex items-center gap-4 mt-3">
+                                <div className="flex items-center gap-6 mt-5">
                                     <div className="flex-1 text-center">
-                                        <div className={`text-lg font-bold ${totalNewGross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        <div className={`text-2xl font-bold ${totalNewGross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                             {formatCurrency(totalNewGross)}
                                         </div>
-                                        <div className="text-gray-500 text-xs">New Car Gross</div>
+                                        <div className="text-gray-500 text-base mt-1">New Car Gross</div>
                                     </div>
                                     <div className="flex-1 text-center">
-                                        <div className={`text-lg font-bold ${totalUsedGross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        <div className={`text-2xl font-bold ${totalUsedGross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                             {formatCurrency(totalUsedGross)}
                                         </div>
-                                        <div className="text-gray-500 text-xs">Used Car Gross</div>
+                                        <div className="text-gray-500 text-base mt-1">Used Car Gross</div>
                                     </div>
                                     {team.goal > 0 && (
                                         <div className="flex-1">
-                                            <div className="flex items-center justify-center gap-1 mb-1">
-                                                <Target size={12} className="text-gray-400" />
-                                                <span className="text-gray-400 text-xs">{team.goal}</span>
+                                            <div className="flex items-center justify-center gap-2 mb-2">
+                                                <Target size={16} className="text-gray-400" />
+                                                <span className="text-gray-400 text-base">{team.goal}</span>
                                             </div>
-                                            <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                                            <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
                                                 <div
                                                     className={`h-full rounded-full transition-all duration-500 ${goalProgress >= 100
                                                         ? 'bg-gradient-to-r from-emerald-400 to-emerald-600'
@@ -403,28 +403,28 @@ export default function TeamTracker() {
                                                     style={{ width: `${Math.min(goalProgress, 100)}%` }}
                                                 />
                                             </div>
-                                            <div className="text-xs text-gray-400 text-center mt-0.5">{goalProgress.toFixed(0)}%</div>
+                                            <div className="text-base text-gray-400 text-center mt-1">{goalProgress.toFixed(0)}%</div>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
                             {/* Team Members - Always Visible */}
-                            <div className="p-6">
-                                <div className="space-y-3">
+                            <div className="p-8">
+                                <div className="space-y-5">
                                     {memberStats.map((member, memberIndex) => (
                                         <div
                                             key={member.id}
-                                            className="flex items-center gap-4 bg-gray-900/40 rounded-xl p-4"
+                                            className="flex items-center gap-6 bg-gray-900/40 rounded-xl p-6"
                                         >
                                             {/* Rank */}
-                                            <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 flex-shrink-0">
+                                            <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-lg font-bold text-gray-300 flex-shrink-0">
                                                 {memberIndex + 1}
                                             </div>
 
                                             {/* Avatar */}
                                             <div
-                                                className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0"
+                                                className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white flex-shrink-0"
                                                 style={{ backgroundColor: team.color }}
                                             >
                                                 {member.name.charAt(0)}
@@ -432,56 +432,56 @@ export default function TeamTracker() {
 
                                             {/* Name */}
                                             <div className="flex-1 min-w-0">
-                                                <div className="font-semibold text-white truncate">{member.name}</div>
+                                                <div className="text-2xl font-semibold text-white truncate">{member.name}</div>
                                             </div>
 
                                             {/* Stats */}
-                                            <div className="flex items-center gap-3 flex-shrink-0">
+                                            <div className="flex items-center gap-4 flex-shrink-0">
                                                 {/* Unit Counters */}
-                                                <div className="flex items-center gap-2 bg-gray-800/50 rounded-lg px-3 py-2">
-                                                    <div className="text-center w-10">
-                                                        <div className="text-base font-bold text-blue-400 tabular-nums">
+                                                <div className="flex items-center gap-3 bg-gray-800/50 rounded-lg px-5 py-3">
+                                                    <div className="text-center w-16">
+                                                        <div className="text-2xl font-bold text-blue-400 tabular-nums">
                                                             {member.newCount % 1 === 0 ? member.newCount : member.newCount.toFixed(1)}
                                                         </div>
-                                                        <div className="text-[10px] text-gray-500 mt-0.5">New</div>
+                                                        <div className="text-sm text-gray-500 mt-1">New</div>
                                                     </div>
-                                                    <div className="text-center w-10">
-                                                        <div className="text-base font-bold text-orange-400 tabular-nums">
+                                                    <div className="text-center w-16">
+                                                        <div className="text-2xl font-bold text-orange-400 tabular-nums">
                                                             {member.usedCount % 1 === 0 ? member.usedCount : member.usedCount.toFixed(1)}
                                                         </div>
-                                                        <div className="text-[10px] text-gray-500 mt-0.5">Used</div>
+                                                        <div className="text-sm text-gray-500 mt-1">Used</div>
                                                     </div>
-                                                    <div className="text-center w-10 border-l border-gray-600 pl-2">
-                                                        <div className="text-lg font-bold text-white tabular-nums">
+                                                    <div className="text-center w-16 border-l border-gray-600 pl-3">
+                                                        <div className="text-3xl font-bold text-white tabular-nums">
                                                             {member.totalCount % 1 === 0 ? member.totalCount : member.totalCount.toFixed(1)}
                                                         </div>
-                                                        <div className="text-[10px] text-gray-500 mt-0.5">Total</div>
+                                                        <div className="text-sm text-gray-500 mt-1">Total</div>
                                                     </div>
                                                 </div>
                                                 {/* Gross Stats */}
-                                                <div className="text-center w-20">
-                                                    <div className={`text-sm font-semibold ${member.frontEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                <div className="text-center w-28">
+                                                    <div className={`text-lg font-semibold ${member.frontEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {formatCurrency(member.frontEnd)}
                                                     </div>
-                                                    <div className="text-[10px] text-gray-500 mt-0.5">Front</div>
+                                                    <div className="text-sm text-gray-500 mt-1">Front</div>
                                                 </div>
-                                                <div className="text-center w-20">
-                                                    <div className={`text-sm font-semibold ${member.backEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                <div className="text-center w-28">
+                                                    <div className={`text-lg font-semibold ${member.backEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {formatCurrency(member.backEnd)}
                                                     </div>
-                                                    <div className="text-[10px] text-gray-500 mt-0.5">Back</div>
+                                                    <div className="text-sm text-gray-500 mt-1">Back</div>
                                                 </div>
-                                                <div className="text-center w-20">
-                                                    <div className={`text-sm font-semibold ${member.gross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                <div className="text-center w-28">
+                                                    <div className={`text-lg font-semibold ${member.gross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {formatCurrency(member.gross)}
                                                     </div>
-                                                    <div className="text-[10px] text-gray-500 mt-0.5">Gross</div>
+                                                    <div className="text-sm text-gray-500 mt-1">Gross</div>
                                                 </div>
                                             </div>
                                         </div>
                                     ))}
                                     {memberStats.length === 0 && (
-                                        <div className="text-center text-gray-500 py-4">No members assigned</div>
+                                        <div className="text-center text-gray-500 py-6 text-xl">No members assigned</div>
                                     )}
                                 </div>
                             </div>
@@ -491,7 +491,7 @@ export default function TeamTracker() {
             </div>
 
             {/* Footer */}
-            <div className="mt-6 text-center text-gray-600 text-sm">
+            <div className="mt-10 text-center text-gray-600 text-lg">
                 Auto-refreshes every 5 minutes
             </div>
         </div>
