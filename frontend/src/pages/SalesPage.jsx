@@ -966,11 +966,14 @@ export default function SalesPage({ carTypeFilter = null, pageTitle = 'Sales' })
                         <th>Status</th>
                         <th>Date</th>
                         <th>Deal #</th>
+                        <th>N/U</th>
+                        <th>Type</th>
                         <th>Vehicle</th>
                         <th>Customer</th>
                         <th>Salesperson</th>
                         <th className="text-right">Front</th>
                         <th className="text-right">Back</th>
+                        <th className="text-right">Total</th>
                         <th>Action</th>
                       </tr>
                     </thead>
@@ -984,12 +987,14 @@ export default function SalesPage({ carTypeFilter = null, pageTitle = 'Sales' })
                               <span className="badge badge-sm badge-success">New</span>
                             )}
                           </td>
-                          <td className="whitespace-nowrap">{record.saleDate}</td>
+                          <td className="whitespace-nowrap">{record.saleDateDisplay || record.saleDate}</td>
                           <td className="font-medium">{record.dealNumber}</td>
-                          <td className="max-w-[150px] truncate" title={`${record.vehicleYear} ${record.vehicleMake} ${record.vehicleModel}`}>
-                            {record.vehicleYear} {record.vehicleMake} {record.vehicleModel}
+                          <td>{record.newUsed || '-'}</td>
+                          <td>{record.dealType || '-'}</td>
+                          <td className="max-w-[150px] truncate" title={`${record.vehicleYear || ''} ${record.vehicleMake || ''} ${record.vehicleModel || ''}`}>
+                            {record.vehicleYear} {record.vehicleMake ? record.vehicleMake.charAt(0).toUpperCase() + record.vehicleMake.slice(1).toLowerCase() : ''} {record.vehicleModel ? record.vehicleModel.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : ''}
                           </td>
-                          <td className="max-w-[120px] truncate" title={record.customerName}>{record.customerName}</td>
+                          <td className="max-w-[120px] truncate" title={record.customerName}>{record.customerName || '-'}</td>
                           <td className="max-w-[120px] truncate">
                             <div className="flex items-center gap-1">
                               {record.salesperson1?.name || 'Unknown'}
@@ -1002,6 +1007,9 @@ export default function SalesPage({ carTypeFilter = null, pageTitle = 'Sales' })
                             {formatCurrency(record.frontEnd)}
                           </td>
                           <td className="text-right">{formatCurrency(record.backEnd)}</td>
+                          <td className={`text-right font-medium ${record.grossProfit < 0 ? 'text-error' : 'text-success'}`}>
+                            {formatCurrency(record.grossProfit)}
+                          </td>
                           <td>
                             {record.isDuplicate ? (
                               <select

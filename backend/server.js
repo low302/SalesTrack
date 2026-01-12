@@ -20,7 +20,16 @@ async function extractPdfText(buffer) {
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const textContent = await page.getTextContent();
-    const pageText = textContent.items.map(item => item.str).join(' ');
+    
+    // Sort items by y position (top to bottom) then x position (left to right)
+    // This helps maintain row structure in table-based PDFs
+    const sortedItems = textContent.items.sort((a, b) => {
+      const yDiff = b.transform[5] - a.transform[5]; // y position (inverted)
+      if (Math.abs(yDiff) > 5) return yDiff; // Different rows
+      return a.transform[4] - b.transform[4]; // Same row, sort by x
+    });
+    
+    const pageText = sortedItems.map(item => item.str).join(' ');
     fullText += pageText + '\n';
   }
 
@@ -1005,74 +1014,109 @@ app.get('/api/teams/:id/stats', authenticateToken, (req, res) => {
 // ============ PDF IMPORT ROUTES ============
 
 // Helper function to parse F&I Management Report PDF
+// Report columns (in order): Deal Date, Deal Number, New/Used, Deal Type, Year, Make, Model, 
+// Price, Stock/Order, Salesperson 1, Salesperson 2, Desk Manager, Front End Gross, Back End Gross, 
+// Total Gross, Name, Certified
 function parseFIReportPDF(text) {
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
   const records = [];
 
-  // Find where the actual data starts (after header row)
-  let dataStartIndex = 0;
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes('Deal Date') && lines[i].includes('Deal Number')) {
-      dataStartIndex = i + 1;
-      break;
-    }
-  }
-
-  // Parse the combined text block - the PDF text comes as a continuous string per record
-  // We need to identify patterns: Date at start (MM/DD/YYYY), then deal number, etc.
-  const datePattern = /^(\d{1,2}\/\d{1,2}\/\d{4})/;
-  const fullText = text;
-
   // Split by date patterns to get individual records
-  const recordTexts = fullText.split(/(?=\d{1,2}\/\d{1,2}\/\d{4})/);
+  // Date format: MM/DD/YYYY followed by space(s) and deal number
+  const recordTexts = text.split(/(?=\d{1,2}\/\d{1,2}\/\d{4}\s+\d{5,6}\b)/);
 
-  for (const recordText of recordTexts) {
+  for (let i = 0; i < recordTexts.length; i++) {
+    const recordText = recordTexts[i];
     const trimmed = recordText.trim();
-    if (!trimmed || !datePattern.test(trimmed)) continue;
+    
+    // Must start with a date pattern followed by deal number
+    const startMatch = trimmed.match(/^(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d{5,6})\b/);
+    if (!startMatch) continue;
 
     try {
-      // Extract date
-      const dateMatch = trimmed.match(datePattern);
-      if (!dateMatch) continue;
-      const dealDate = dateMatch[1];
+      const dealDate = startMatch[1]; // MM/DD/YYYY format
+      const dealNumber = startMatch[2];
+      
 
-      // Extract deal number (5-6 digits after date)
-      const dealNumMatch = trimmed.match(/\d{1,2}\/\d{1,2}\/\d{4}\s*(\d{5,6})/);
-      if (!dealNumMatch) continue;
-      const dealNumber = dealNumMatch[1];
 
-      // Extract deal type (Retail or Lease)
-      const dealTypeMatch = trimmed.match(/\d{5,6}\s*(Retail|Lease)/i);
-      const dealType = dealTypeMatch ? dealTypeMatch[1] : 'Retail';
+      // Try multiple patterns for New/Used extraction
+      let newUsed = '';
+      let dealType = 'Retail';
+      let vehicleYear = '';
+      let vehicleMake = '';
+      let vehicleModel = '';
+      let vehiclePrice = 0;
 
-      // Extract vehicle year, make, model (YYYY MAKE MODEL pattern)
-      const vehicleMatch = trimmed.match(/(Retail|Lease)\s*(\d{4})\s*([A-Z]+)\s+([A-Z][A-Z0-9\s\.]+?)(?=\s+[\d\-,]+\.\d{2}|\s+\d{1}[A-Z]\d)/i);
-      let vehicleYear = '', vehicleMake = '', vehicleModel = '';
-      if (vehicleMatch) {
-        vehicleYear = vehicleMatch[2];
-        vehicleMake = vehicleMatch[3].trim();
-        vehicleModel = vehicleMatch[4].trim().replace(/\.{3}$/, '');
+      // Pattern 1: Standard format - DealNumber New/Used DealType Year Make
+      const pattern1 = trimmed.match(/\d{5,6}\s+(New|Used)\s+(Retail|Lease)\s+(\d{4})\s+([A-Z][A-Z\s]*?)(?=\s+[A-Z0-9\.\s]+\s+[\d,]+\.\d{2})/i);
+      
+      if (pattern1) {
+        newUsed = pattern1[1];
+        dealType = pattern1[2];
+        vehicleYear = pattern1[3];
+        vehicleMake = pattern1[4].trim();
+
+      } else {
+        // Pattern 2: Try finding New/Used anywhere after deal number
+        const newUsedMatch = trimmed.match(/\d{5,6}\s+(New|Used)/i);
+        if (newUsedMatch) {
+          newUsed = newUsedMatch[1];
+        }
+        
+        // Find Retail/Lease
+        const dealTypeMatch = trimmed.match(/\b(Retail|Lease)\b/i);
+        if (dealTypeMatch) {
+          dealType = dealTypeMatch[1];
+        }
+        
+        // Find year (4 digits after Retail/Lease)
+        const yearMatch = trimmed.match(/(?:Retail|Lease)\s+(\d{4})/i);
+        if (yearMatch) {
+          vehicleYear = yearMatch[1];
+        }
+        
+
       }
 
-      // Extract price and stock number - look for pattern like "34,159.07 5S8959B" or just price
-      const priceStockMatch = trimmed.match(/([0-9,]+\.\d{2})\s+([A-Z0-9]+)?\s+(-?[0-9,]+\.\d{2})\s+(-?[0-9,]+\.\d{2})/);
-      let vehiclePrice = 0, stockNumber = '', frontEnd = 0, backEnd = 0;
+      // Extract Make and Model - look for pattern after year
+      // Year followed by MAKE MODEL Price
+      if (vehicleYear) {
+        const makeModelPattern = new RegExp(vehicleYear + '\\s+([A-Z]+)\\s+([A-Z][A-Z0-9\\s\\.]*?)\\s+([\\d,]+\\.\\d{2})', 'i');
+        const makeModelMatch = trimmed.match(makeModelPattern);
+        
+        if (makeModelMatch) {
+          vehicleMake = makeModelMatch[1].trim();
+          vehicleModel = makeModelMatch[2].trim().replace(/\.{3}$/, '');
+          vehiclePrice = parseFloat(makeModelMatch[3].replace(/,/g, ''));
 
-      if (priceStockMatch) {
-        vehiclePrice = parseFloat(priceStockMatch[1].replace(/,/g, ''));
-        stockNumber = priceStockMatch[2] || '';
-        frontEnd = parseFloat(priceStockMatch[3].replace(/,/g, ''));
-        backEnd = parseFloat(priceStockMatch[4].replace(/,/g, ''));
+        }
       }
 
-      // Extract salesperson(s) - pattern: NAME (ID)
-      const salespersonMatches = trimmed.matchAll(/([A-Z][A-Z\s]+?)\s*\((\d+)\)/g);
-      const salespeople = Array.from(salespersonMatches).map(m => ({
+      // Handle two-word makes like "FORD TRUCK", "TOYOTA TR...", "CADILLAC T..."
+      if (vehicleModel && /^(TRUCK|TR\.{0,3}|T\.{0,3})\b/i.test(vehicleModel)) {
+        const modelParts = vehicleModel.split(/\s+/);
+        vehicleMake = vehicleMake + ' ' + modelParts[0].replace(/\.{3}$/, '');
+        vehicleModel = modelParts.slice(1).join(' ').replace(/\.{3}$/, '');
+      }
+
+      // Extract stock number - alphanumeric pattern after price
+      let stockNumber = '';
+      const stockMatch = trimmed.match(/[\d,]+\.\d{2}\s+(\d[A-Z][0-9A-Z]+)\b/);
+      if (stockMatch) {
+        stockNumber = stockMatch[1];
+      }
+
+      // Extract all salespeople - pattern: NAME (ID) where ID is 4-6 digits
+      // Name pattern: One or more uppercase words (may include middle initials like "A" or "D")
+      // Example: "BAILEY A REID (12345)" or "CHRISTOPHER D GANDARA (82345)"
+      const salespersonMatches = [...trimmed.matchAll(/([A-Z][A-Z]+(?:\s+[A-Z]+)*)\s*\((\d{4,6})\)/g)];
+      const salespeople = salespersonMatches.map(m => ({
         name: formatName(m[1].trim()),
         employeeId: m[2]
       }));
+      
 
-      // First salesperson is primary, second is split if exists, third is desk manager
+
+      // Assign salespeople roles
       let salesperson1 = salespeople[0] || null;
       let salesperson2 = null;
       let deskManager = null;
@@ -1081,67 +1125,63 @@ function parseFIReportPDF(text) {
         salesperson2 = salespeople[1];
         deskManager = salespeople[2];
       } else if (salespeople.length === 2) {
-        // Could be sp1 + desk or sp1 + sp2 - check if second appears to be desk manager
-        // Desk managers typically have names like JEFFERY D SAPP, JOSE M AYALA
         deskManager = salespeople[1];
+      } else if (salespeople.length === 1) {
+        deskManager = salespeople[0];
       }
 
-      // Find the last person with ID (desk manager) - everything after is notes + customer name
-      const personIdMatches = [...trimmed.matchAll(/\(\d+\)/g)];
-      let remainingText = '';
-      if (personIdMatches.length > 0) {
-        const lastMatch = personIdMatches[personIdMatches.length - 1];
-        const lastIndex = lastMatch.index + lastMatch[0].length;
-        remainingText = trimmed.slice(lastIndex).trim();
-      }
-
-      // Extract customer name - proper name pattern (FIRST MIDDLE? LAST) at the end
-      // Customer names look like "HAYLEY ELIZABETH SMITH" or "DANIEL ANTHONY SORIA"
-      // They appear after notes and before "Yes" (if certified)
+      // Extract gross values and customer name from end of record
+      let frontEnd = 0, backEnd = 0, totalGross = 0;
       let customerName = '';
-      let notes = '';
+      let certified = false;
 
-      // Check if certified (ends with Yes)
-      const certified = /\bYes\s*$/.test(trimmed); // Keep original certified logic
+      // Find text after last salesperson ID (last closing parenthesis before a number)
+      const lastParenIndex = trimmed.lastIndexOf(')');
+      if (lastParenIndex !== -1) {
+        const afterSalespeople = trimmed.slice(lastParenIndex + 1).trim();
 
-      // Remove trailing "Yes" if present from remainingText
-      const certifiedMatchInRemaining = remainingText.match(/\s+Yes\s*$/);
-      if (certifiedMatchInRemaining) {
-        remainingText = remainingText.slice(0, -certifiedMatchInRemaining[0].length);
-      }
+        
+        // Look for three consecutive numbers followed by a name
+        // Pattern: number number number NAME [Yes]
+        const grossPattern = /(-?[\d,]+\.\d{2})\s+(-?[\d,]+\.\d{2})\s+(-?[\d,]+\.\d{2})\s+([A-Z].*?)(?:\s+Yes)?$/i;
+        const grossMatch = afterSalespeople.match(grossPattern);
+        
+        if (grossMatch) {
+          frontEnd = parseFloat(grossMatch[1].replace(/,/g, ''));
+          backEnd = parseFloat(grossMatch[2].replace(/,/g, ''));
+          totalGross = parseFloat(grossMatch[3].replace(/,/g, ''));
+          customerName = grossMatch[4].trim().replace(/\s+Yes$/i, '');
+          certified = /\bYes\s*$/i.test(afterSalespeople);
 
-      // Split remaining text - look for customer name pattern at end
-      // Customer names are 2-4 capitalized words without numbers or special chars like /
-      // Also allow trailing ellipsis (PDF truncation)
-
-      // First remove trailing ellipsis if present
-      remainingText = remainingText.replace(/\.{3}$/, '').trim();
-
-      // Common business keywords to exclude from customer names
-      const businessKeywords = /\d|\/|TBB|SAF|FUNDED|FUNDING|PENDING|HOLDING|RESIGN|LEASE|BUYOUT|CANCEL|ADDS|PRICING|MANAGER|TITLE/i;
-
-      const customerNameMatch = remainingText.match(/\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){1,3})\s*$/);
-      if (customerNameMatch && !customerNameMatch[1].match(businessKeywords)) {
-        customerName = customerNameMatch[1].trim();
-        notes = remainingText.slice(0, remainingText.length - customerNameMatch[0].length).trim();
-      } else {
-        // Try all-caps pattern for names like "DANIEL ANTHONY SORIA"
-        const capsCustomerMatch = remainingText.match(/\s+([A-Z]+(?:\s+[A-Z]+){1,3})\s*$/);
-        if (capsCustomerMatch && !capsCustomerMatch[1].match(businessKeywords)) {
-          customerName = capsCustomerMatch[1].trim();
-          notes = remainingText.slice(0, remainingText.length - capsCustomerMatch[0].length).trim();
         } else {
-          notes = remainingText.trim();
+          // Fallback: try to find any three numbers
+          const allNumbers = [...afterSalespeople.matchAll(/(-?[\d,]+\.\d{2})/g)];
+          if (allNumbers.length >= 3) {
+            frontEnd = parseFloat(allNumbers[0][1].replace(/,/g, ''));
+            backEnd = parseFloat(allNumbers[1][1].replace(/,/g, ''));
+            totalGross = parseFloat(allNumbers[2][1].replace(/,/g, ''));
+            
+            // Get customer name - text after the last number
+            const lastNumEnd = afterSalespeople.lastIndexOf(allNumbers[2][1]) + allNumbers[2][1].length;
+            customerName = afterSalespeople.slice(lastNumEnd).trim().replace(/\s+Yes$/i, '');
+            certified = /\bYes\s*$/i.test(afterSalespeople);
+
+          }
         }
       }
 
-      // Convert date from MM/DD/YYYY to YYYY-MM-DD
+      // Skip records that don't have valid data
+      if (!dealNumber || !dealDate) continue;
+
+      // Convert date from MM/DD/YYYY to YYYY-MM-DD for storage (app uses this format)
       const dateParts = dealDate.split('/');
-      const saleDate = `${dateParts[2]}-${dateParts[0].padStart(2, '0')}-${dateParts[1].padStart(2, '0')}`;
+      const saleDateFormatted = `${dateParts[2]}-${dateParts[0].padStart(2, '0')}-${dateParts[1].padStart(2, '0')}`;
 
       records.push({
-        saleDate,
+        saleDate: saleDateFormatted, // YYYY-MM-DD for storage
+        saleDateDisplay: dealDate, // MM/DD/YYYY for display
         dealNumber,
+        newUsed,
         dealType,
         vehicleYear: parseInt(vehicleYear) || null,
         vehicleMake,
@@ -1150,20 +1190,20 @@ function parseFIReportPDF(text) {
         stockNumber,
         frontEnd,
         backEnd,
-        grossProfit: frontEnd + backEnd,
+        grossProfit: totalGross,
         salesperson1,
         salesperson2,
-        deskManager: deskManager ? formatName(deskManager.name) : '',
+        deskManager: deskManager ? deskManager.name : '',
         customerName: formatName(customerName),
         certified,
-        notes,
-        rawText: trimmed.substring(0, 200) // For debugging
+        notes: '',
+        rawText: trimmed.substring(0, 500) // For debugging
       });
     } catch (err) {
-      console.error('Error parsing record:', err.message);
+      console.error('Error parsing record:', err.message, err.stack);
     }
   }
-
+  
   return records;
 }
 
@@ -1303,13 +1343,16 @@ app.post('/api/sales/import-pdf/confirm', authenticateToken, async (req, res) =>
 
       const isSplit = !!salesperson2Id;
 
+      // Map newUsed (from PDF: 'New' or 'Used') to carType (app format: 'new' or 'used')
+      const carType = record.newUsed ? record.newUsed.toLowerCase() : 'new';
+
       const saleData = {
         dealNumber: record.dealNumber,
         stockNumber: record.stockNumber,
         frontEnd: record.frontEnd,
         backEnd: record.backEnd,
         packAmount,
-        grossProfit: record.frontEnd + record.backEnd,
+        grossProfit: record.grossProfit || (record.frontEnd + record.backEnd),
         salespersonId: salesperson1Id,
         secondSalespersonId: salesperson2Id,
         isSplit,
@@ -1319,6 +1362,7 @@ app.post('/api/sales/import-pdf/confirm', authenticateToken, async (req, res) =>
         vehicleMake: record.vehicleMake,
         vehicleModel: record.vehicleModel,
         vehiclePrice: record.vehiclePrice,
+        carType, // 'new' or 'used' - mapped from newUsed
         dealType: record.dealType,
         deskManager: record.deskManager,
         certified: record.certified,

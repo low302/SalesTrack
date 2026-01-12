@@ -410,12 +410,12 @@ export default function TeamTracker() {
                             </div>
 
                             {/* Team Members - Always Visible */}
-                            <div className="p-4">
-                                <div className="space-y-2">
+                            <div className="p-6">
+                                <div className="space-y-3">
                                     {memberStats.map((member, memberIndex) => (
                                         <div
                                             key={member.id}
-                                            className="flex items-center gap-3 bg-gray-900/40 rounded-xl p-3"
+                                            className="flex items-center gap-4 bg-gray-900/40 rounded-xl p-4"
                                         >
                                             {/* Rank */}
                                             <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 flex-shrink-0">
@@ -436,46 +436,46 @@ export default function TeamTracker() {
                                             </div>
 
                                             {/* Stats */}
-                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                            <div className="flex items-center gap-3 flex-shrink-0">
                                                 {/* Unit Counters */}
-                                                <div className="flex items-center gap-1 bg-gray-800/50 rounded-lg px-2 py-1">
-                                                    <div className="text-center w-8">
+                                                <div className="flex items-center gap-2 bg-gray-800/50 rounded-lg px-3 py-2">
+                                                    <div className="text-center w-10">
                                                         <div className="text-base font-bold text-blue-400 tabular-nums">
                                                             {member.newCount % 1 === 0 ? member.newCount : member.newCount.toFixed(1)}
                                                         </div>
-                                                        <div className="text-[10px] text-gray-500">New</div>
+                                                        <div className="text-[10px] text-gray-500 mt-0.5">New</div>
                                                     </div>
-                                                    <div className="text-center w-8">
+                                                    <div className="text-center w-10">
                                                         <div className="text-base font-bold text-orange-400 tabular-nums">
                                                             {member.usedCount % 1 === 0 ? member.usedCount : member.usedCount.toFixed(1)}
                                                         </div>
-                                                        <div className="text-[10px] text-gray-500">Used</div>
+                                                        <div className="text-[10px] text-gray-500 mt-0.5">Used</div>
                                                     </div>
-                                                    <div className="text-center w-8 border-l border-gray-600 pl-1">
+                                                    <div className="text-center w-10 border-l border-gray-600 pl-2">
                                                         <div className="text-lg font-bold text-white tabular-nums">
                                                             {member.totalCount % 1 === 0 ? member.totalCount : member.totalCount.toFixed(1)}
                                                         </div>
-                                                        <div className="text-[10px] text-gray-500">Total</div>
+                                                        <div className="text-[10px] text-gray-500 mt-0.5">Total</div>
                                                     </div>
                                                 </div>
                                                 {/* Gross Stats */}
-                                                <div className="text-center w-16">
-                                                    <div className={`text-xs font-semibold ${member.frontEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                <div className="text-center w-20">
+                                                    <div className={`text-sm font-semibold ${member.frontEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {formatCurrency(member.frontEnd)}
                                                     </div>
-                                                    <div className="text-[10px] text-gray-500">Front</div>
+                                                    <div className="text-[10px] text-gray-500 mt-0.5">Front</div>
                                                 </div>
-                                                <div className="text-center w-16">
-                                                    <div className={`text-xs font-semibold ${member.backEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                <div className="text-center w-20">
+                                                    <div className={`text-sm font-semibold ${member.backEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {formatCurrency(member.backEnd)}
                                                     </div>
-                                                    <div className="text-[10px] text-gray-500">Back</div>
+                                                    <div className="text-[10px] text-gray-500 mt-0.5">Back</div>
                                                 </div>
-                                                <div className="text-center w-16">
-                                                    <div className={`text-xs font-semibold ${member.gross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                <div className="text-center w-20">
+                                                    <div className={`text-sm font-semibold ${member.gross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {formatCurrency(member.gross)}
                                                     </div>
-                                                    <div className="text-[10px] text-gray-500">Gross</div>
+                                                    <div className="text-[10px] text-gray-500 mt-0.5">Gross</div>
                                                 </div>
                                             </div>
                                         </div>

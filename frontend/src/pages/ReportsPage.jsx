@@ -18,6 +18,7 @@ export default function ReportsPage({ carTypeFilter = null, pageTitle = 'Reports
   const [showCompare, setShowCompare] = useState(false);
   const [compareMode, setCompareMode] = useState(null);
   const [showCompareDropdown, setShowCompareDropdown] = useState(false);
+  const [dealTypeFilter, setDealTypeFilter] = useState(''); // '', 'Retail', 'Lease'
   const api = useApi();
 
   const COLORS = ['#3b82f6', '#8b5cf6', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16'];
@@ -164,8 +165,14 @@ export default function ReportsPage({ carTypeFilter = null, pageTitle = 'Reports
     return sales.filter(s => (s.carType || 'new') === carTypeFilter);
   }, [sales, carTypeFilter]);
 
-  // Filtered sales for current range (use carType filtered sales)
-  const filteredSales = useMemo(() => filterSalesByRange(carTypeFilteredSales, currentRange.start, currentRange.end), [carTypeFilteredSales, currentRange]);
+  // Apply dealType filter
+  const dealTypeFilteredSales = useMemo(() => {
+    if (!dealTypeFilter) return carTypeFilteredSales;
+    return carTypeFilteredSales.filter(s => s.dealType === dealTypeFilter);
+  }, [carTypeFilteredSales, dealTypeFilter]);
+
+  // Filtered sales for current range (use carType and dealType filtered sales)
+  const filteredSales = useMemo(() => filterSalesByRange(dealTypeFilteredSales, currentRange.start, currentRange.end), [dealTypeFilteredSales, currentRange]);
 
   // Compare data
   const compareData = useMemo(() => {
@@ -176,14 +183,14 @@ export default function ReportsPage({ carTypeFilter = null, pageTitle = 'Reports
     return {
       primary: {
         ...ranges.primary,
-        sales: filterSalesByRange(carTypeFilteredSales, ranges.primary.start, ranges.primary.end)
+        sales: filterSalesByRange(dealTypeFilteredSales, ranges.primary.start, ranges.primary.end)
       },
       compare: {
         ...ranges.compare,
-        sales: filterSalesByRange(carTypeFilteredSales, ranges.compare.start, ranges.compare.end)
+        sales: filterSalesByRange(dealTypeFilteredSales, ranges.compare.start, ranges.compare.end)
       }
     };
-  }, [compareMode, carTypeFilteredSales]);
+  }, [compareMode, dealTypeFilteredSales]);
 
   const getSalespersonName = (sale) => {
     const sp1 = salespeople.find(sp => sp.id === sale.salespersonId);
@@ -335,6 +342,17 @@ export default function ReportsPage({ carTypeFilter = null, pageTitle = 'Reports
           <p className="text-base-content/60">Detailed sales analytics and insights{carTypeFilter ? ` (${carTypeFilter === 'new' ? 'New' : 'Used'} vehicles only)` : ''}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* Deal Type Filter */}
+          <select
+            className="select select-bordered select-sm"
+            value={dealTypeFilter}
+            onChange={(e) => setDealTypeFilter(e.target.value)}
+          >
+            <option value="">All Types</option>
+            <option value="Retail">Retail Only</option>
+            <option value="Lease">Lease Only</option>
+          </select>
+
           {/* Date Range Selector */}
           <select
             className="select select-bordered select-sm"
@@ -442,7 +460,7 @@ export default function ReportsPage({ carTypeFilter = null, pageTitle = 'Reports
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+      <div className={`grid grid-cols-2 gap-4 ${carTypeFilter === 'new' ? 'lg:grid-cols-3' : 'lg:grid-cols-6'}`}>
         <div className="stat bg-base-100 rounded-box shadow">
           <div className="stat-title">Avg Front End</div>
           <div className="stat-value text-lg">{formatCurrency(activeSales.length > 0 ? totalFrontEnd / activeSales.length : 0)}</div>
@@ -461,22 +479,29 @@ export default function ReportsPage({ carTypeFilter = null, pageTitle = 'Reports
             </div>
           )}
         </div>
-        <div className="stat bg-base-100 rounded-box shadow">
-          <div className="stat-title">CPO Sales</div>
-          <div className="stat-value text-lg">{cpoCount}</div>
-          <div className="stat-desc">
-            {activeSales.length > 0 ? ((cpoCount / activeSales.length) * 100).toFixed(0) : 0}% of total
-            {compareMode && compareTotals && ` (was ${compareTotals.count > 0 ? ((compareTotals.cpo / compareTotals.count) * 100).toFixed(0) : 0}%)`}
-          </div>
-        </div>
-        <div className="stat bg-base-100 rounded-box shadow">
-          <div className="stat-title">SSLP Sales</div>
-          <div className="stat-value text-lg">{sslpCount}</div>
-          <div className="stat-desc">
-            {activeSales.length > 0 ? ((sslpCount / activeSales.length) * 100).toFixed(0) : 0}% of total
-            {compareMode && compareTotals && ` (was ${compareTotals.count > 0 ? ((compareTotals.sslp / compareTotals.count) * 100).toFixed(0) : 0}%)`}
-          </div>
-        </div>
+        
+        {/* Hide CPO, SSLP, and Shop Bill for New Car Reports */}
+        {carTypeFilter !== 'new' && (
+          <>
+            <div className="stat bg-base-100 rounded-box shadow">
+              <div className="stat-title">CPO Sales</div>
+              <div className="stat-value text-lg">{cpoCount}</div>
+              <div className="stat-desc">
+                {activeSales.length > 0 ? ((cpoCount / activeSales.length) * 100).toFixed(0) : 0}% of total
+                {compareMode && compareTotals && ` (was ${compareTotals.count > 0 ? ((compareTotals.cpo / compareTotals.count) * 100).toFixed(0) : 0}%)`}
+              </div>
+            </div>
+            <div className="stat bg-base-100 rounded-box shadow">
+              <div className="stat-title">SSLP Sales</div>
+              <div className="stat-value text-lg">{sslpCount}</div>
+              <div className="stat-desc">
+                {activeSales.length > 0 ? ((sslpCount / activeSales.length) * 100).toFixed(0) : 0}% of total
+                {compareMode && compareTotals && ` (was ${compareTotals.count > 0 ? ((compareTotals.sslp / compareTotals.count) * 100).toFixed(0) : 0}%)`}
+              </div>
+            </div>
+          </>
+        )}
+        
         <div className="stat bg-base-100 rounded-box shadow">
           <div className="stat-title">Total Pack</div>
           <div className="stat-value text-lg text-warning">{formatCurrency(totalPack)}</div>
@@ -484,13 +509,16 @@ export default function ReportsPage({ carTypeFilter = null, pageTitle = 'Reports
             {activeSales.length} units × {formatCurrency(avgPackAmount)}
           </div>
         </div>
-        <div className="stat bg-base-100 rounded-box shadow">
-          <div className="stat-title">Total Shop Bill</div>
-          <div className="stat-value text-lg text-error">{formatCurrency(totalShopBill)}</div>
-          <div className="stat-desc">
-            {activeSales.length} units × {formatCurrency(avgShopBill)}
+        
+        {carTypeFilter !== 'new' && (
+          <div className="stat bg-base-100 rounded-box shadow">
+            <div className="stat-title">Total Shop Bill</div>
+            <div className="stat-value text-lg text-error">{formatCurrency(totalShopBill)}</div>
+            <div className="stat-desc">
+              {activeSales.length} units × {formatCurrency(avgShopBill)}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Charts Row 1 */}
