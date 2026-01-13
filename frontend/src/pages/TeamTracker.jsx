@@ -436,22 +436,22 @@ export default function TeamTracker() {
                                             </div>
 
                                             {/* Stats */}
-                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                            <div className="flex items-center gap-3 flex-shrink-0">
                                                 {/* Unit Counters */}
                                                 <div className="flex items-center gap-1 bg-gray-800/50 rounded px-2 py-1">
-                                                    <div className="text-center w-8">
+                                                    <div className="text-center w-7">
                                                         <div className="text-sm font-bold text-blue-400 tabular-nums leading-tight">
                                                             {member.newCount % 1 === 0 ? member.newCount : member.newCount.toFixed(1)}
                                                         </div>
                                                         <div className="text-[8px] text-gray-500">New</div>
                                                     </div>
-                                                    <div className="text-center w-8">
+                                                    <div className="text-center w-7">
                                                         <div className="text-sm font-bold text-orange-400 tabular-nums leading-tight">
                                                             {member.usedCount % 1 === 0 ? member.usedCount : member.usedCount.toFixed(1)}
                                                         </div>
                                                         <div className="text-[8px] text-gray-500">Used</div>
                                                     </div>
-                                                    <div className="text-center w-8 border-l border-gray-600 pl-1">
+                                                    <div className="text-center w-7 border-l border-gray-600 pl-1">
                                                         <div className="text-base font-bold text-white tabular-nums leading-tight">
                                                             {member.totalCount % 1 === 0 ? member.totalCount : member.totalCount.toFixed(1)}
                                                         </div>
@@ -459,20 +459,20 @@ export default function TeamTracker() {
                                                     </div>
                                                 </div>
                                                 {/* Gross Stats */}
-                                                <div className="text-center w-16">
-                                                    <div className={`text-xs font-semibold ${member.frontEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                <div className="text-center w-20">
+                                                    <div className={`text-sm font-semibold ${member.frontEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {formatCurrency(member.frontEnd)}
                                                     </div>
                                                     <div className="text-[8px] text-gray-500">Front</div>
                                                 </div>
-                                                <div className="text-center w-16">
-                                                    <div className={`text-xs font-semibold ${member.backEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                <div className="text-center w-20">
+                                                    <div className={`text-sm font-semibold ${member.backEnd >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {formatCurrency(member.backEnd)}
                                                     </div>
                                                     <div className="text-[8px] text-gray-500">Back</div>
                                                 </div>
-                                                <div className="text-center w-16">
-                                                    <div className={`text-xs font-semibold ${member.gross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                <div className="text-center w-20">
+                                                    <div className={`text-sm font-semibold ${member.gross >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {formatCurrency(member.gross)}
                                                     </div>
                                                     <div className="text-[8px] text-gray-500">Gross</div>
