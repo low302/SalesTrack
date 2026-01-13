@@ -14,7 +14,8 @@ import {
   UsersRound,
   Trophy,
   Sparkles,
-  ClipboardList
+  ClipboardList,
+  Heart
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -30,6 +31,9 @@ export default function Sidebar({ collapsed, setCollapsed }) {
   });
   const [salesTeamOpen, setSalesTeamOpen] = useState(() => {
     return location.pathname.startsWith('/salespeople') || location.pathname.startsWith('/teams');
+  });
+  const [loveEncoreOpen, setLoveEncoreOpen] = useState(() => {
+    return location.pathname.startsWith('/love-encore');
   });
 
   const newCarsItems = [
@@ -47,6 +51,12 @@ export default function Sidebar({ collapsed, setCollapsed }) {
     { to: '/teams', icon: Trophy, label: 'Team Management' },
   ];
 
+  const loveEncoreItems = [
+    { to: '/love-encore/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/love-encore/customers', icon: Users, label: 'Customers' },
+    { to: '/love-encore/reports', icon: BarChart3, label: 'Reports' },
+  ];
+
   const adminItems = [
     { to: '/users', icon: UserCog, label: 'Users', adminOnly: true },
     { to: '/settings', icon: Settings, label: 'Settings', adminOnly: true },
@@ -55,6 +65,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
   // Check if routes are active
   const isNewCarsActive = newCarsItems.some(item => location.pathname === item.to);
   const isUsedCarsActive = usedCarsItems.some(item => location.pathname === item.to);
+  const isLoveEncoreActive = loveEncoreItems.some(item => location.pathname === item.to);
   const isSalesTeamActive = salesTeamItems.some(item => location.pathname === item.to);
 
   const renderNavItem = (item) => (
@@ -214,6 +225,9 @@ export default function Sidebar({ collapsed, setCollapsed }) {
 
           {/* Used Cars Dropdown */}
           {renderDropdown('Used Cars', Car, usedCarsItems, usedCarsOpen, setUsedCarsOpen, isUsedCarsActive, 'secondary')}
+
+          {/* Love Encore Dropdown */}
+          {renderDropdown('Love Encore', Heart, loveEncoreItems, loveEncoreOpen, setLoveEncoreOpen, isLoveEncoreActive, 'secondary')}
 
           {/* Sales Team Dropdown - Admin Only */}
           {isAdmin && renderDropdown('Sales Team', UsersRound, salesTeamItems, salesTeamOpen, setSalesTeamOpen, isSalesTeamActive, 'accent')}

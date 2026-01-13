@@ -16,6 +16,9 @@ import SettingsPage from './pages/SettingsPage';
 import TeamDashboard from './pages/TeamDashboard';
 import TeamManagementPage from './pages/TeamManagementPage';
 import TeamTracker from './pages/TeamTracker';
+import LoveEncoreDashboard from './pages/LoveEncoreDashboard';
+import LoveEncoreCustomers from './pages/LoveEncoreCustomers';
+import LoveEncoreReports from './pages/LoveEncoreReports';
 import { Loader2 } from 'lucide-react';
 
 function PrivateRoute({ children }) {
@@ -84,6 +87,9 @@ function AppRoutes() {
         <Route path="new-cars/reports" element={<NewCarReportsPage />} />
         <Route path="used-cars/sales" element={<UsedCarSalesPage />} />
         <Route path="used-cars/reports" element={<UsedCarReportsPage />} />
+        <Route path="love-encore/dashboard" element={<LoveEncoreDashboard />} />
+        <Route path="love-encore/customers" element={<LoveEncoreCustomers />} />
+        <Route path="love-encore/reports" element={<LoveEncoreReports />} />
         <Route path="sales" element={<SalesPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route
